@@ -1372,47 +1372,27 @@
         });
     }
 
-    // ---- Download button injection + click handling ----
+    // ---- Native Download button click handling ----
 
-    function refreshButtons() {
-        document.querySelectorAll('.download-button-1[data-studocuhack="download"]').forEach(function(el) {
-            el.remove();
-        });
-        document.querySelectorAll('[data-test-selector="document-viewer-download-button-topbar"], [class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button[aria-label="Download"]').forEach(function(btn) {
-            btn.setAttribute('data-studocuhack', 'download');
-            btn.classList.add('studocuhack-native-download');
-            Array.from(btn.classList).forEach(function(name) {
-                if (name.includes('primaryGreen')) btn.classList.remove(name);
-            });
-            var label = btn.querySelector('[data-content="true"]');
-            if (label) label.textContent = 'Download';
-        });
-        var d = document.querySelector('#modal-overlay');
-        if (d) d.style.display = 'none';
+    var NATIVE_DOWNLOAD_SELECTOR =
+        '[data-test-selector="document-viewer-download-button-topbar"], ' +
+        '[class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button[aria-label="Download"]';
+
+    function nativeDownloadButton(target) {
+        return target && target.closest ? target.closest(NATIVE_DOWNLOAD_SELECTOR) : null;
     }
 
     // Capture-phase delegation - fires before React handlers.
     document.addEventListener('click', function(e) {
-        var btn = e.target.closest('[data-studocuhack="download"]');
+        var btn = nativeDownloadButton(e.target);
         if (btn) { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); generatePDF(); }
     }, true);
     document.addEventListener('mousedown', function(e) {
-        if (e.target.closest('[data-studocuhack="download"]')) e.stopPropagation();
+        if (nativeDownloadButton(e.target)) e.stopPropagation();
     }, true);
-
-    var refreshTimer;
-    var obs = new MutationObserver(function() {
-        clearTimeout(refreshTimer);
-        refreshTimer = setTimeout(refreshButtons, 50);
-    });
-    function init() {
-        obs.disconnect();
-        obs.observe(document.documentElement, { childList: true, subtree: true });
-        refreshButtons();
-    }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-    else init();
-    window.addEventListener('load', init);
+    document.addEventListener('pointerdown', function(e) {
+        if (nativeDownloadButton(e.target)) e.stopPropagation();
+    }, true);
 })();
 (function() {
     'use strict';

@@ -215,8 +215,10 @@ body .nofilter {
     pointer-events: none !important;
 }
 
-/* Reuse Studocu's native desktop/mobile Download buttons for PDF export. */
-.studocuhack-native-download {
+/* Style native desktop/mobile Download buttons directly. React may replace the
+   nodes while scrolling, so this must not depend on a class injected by JS. */
+[data-test-selector="document-viewer-download-button-topbar"],
+[class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button[aria-label="Download"] {
     display: inline-flex !important;
     visibility: visible !important;
     background: #4D8BF5 !important;
@@ -225,7 +227,8 @@ body .nofilter {
     cursor: pointer !important;
 }
 
-.studocuhack-native-download:hover {
+[data-test-selector="document-viewer-download-button-topbar"]:hover,
+[class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button[aria-label="Download"]:hover {
     background: #3a7be0 !important;
     border-color: #3a7be0 !important;
 }
