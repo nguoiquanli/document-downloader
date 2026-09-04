@@ -1045,8 +1045,8 @@
                     if (len === lastLen) { stable++; } else { stable = 0; lastLen = len; }
                     if (stable >= 2) { resolve(); return; }
                 }
-                if (tries++ > 30) { resolve(); return; } // ~4.5s safety cap per page
-                setTimeout(check, 150);
+                if (tries++ > 32) { resolve(); return; } // ~2.5s safety cap per page
+                setTimeout(check, 75);
             }
             check();
         });
@@ -1114,7 +1114,7 @@
         var urls = Object.keys(unique);
         var map = {};
         var next = 0, done = 0;
-        var CONCURRENCY = 6;
+        var CONCURRENCY = 12;
 
         return new Promise(function(resolve) {
             function worker() {

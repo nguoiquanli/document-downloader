@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.1 — 2026-09-04
+
+- Tăng tốc capture Studocu bằng cách giảm chu kỳ kiểm tra trạng thái trang từ 150 ms xuống 75 ms.
+- Giảm thời gian chờ tối đa cho một trang chưa ổn định từ khoảng 4,5 giây xuống khoảng 2,5 giây.
+- Tăng số ảnh được tải và nhúng đồng thời từ 6 lên 12.
+- Giữ nguyên capture tuần tự để tương thích với virtual scroller và tránh bỏ sót trang.
+- Kiểm tra và xác nhận toàn extension không còn `console.*`, `debugger` hoặc mã chẩn đoán runtime.
+
 ## 2.0.0 — 2026-09-04
 
 - Hợp nhất bộ tải Studocu, Scribd và SlideShare thành Chrome extension Manifest V3.
