@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Document Downloader",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Tải tài liệu từ Studocu, Scribd và SlideShare.",
   "icons": {
     "16": "assets/icons/16.png",
@@ -39,6 +39,7 @@
     {
       "matches": ["https://www.scribd.com/document/*", "https://scribd.com/document/*"],
       "js": ["sites/scribd.js"],
+      "css": ["styles/scribd.css"],
       "run_at": "document_start"
     },
     {
@@ -48,6 +49,7 @@
         "https://*.slideshare.net/slideshow/*"
       ],
       "js": ["sites/slideshare.js"],
+      "css": ["styles/slideshare.css"],
       "all_frames": true,
       "run_at": "document_idle"
     }

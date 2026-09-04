@@ -65,13 +65,15 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 │   ├── slideshare.js
 │   └── studocu.js
 ├── styles/
+│   ├── scribd.css
+│   ├── slideshare.css
 │   └── studocu.css
 └── assets/icons/
 ```
 
 - `background.js`: tải ảnh SlideShare qua host permission.
 - `sites/*.js`: module độc lập cho từng website.
-- `styles/studocu.css`: giao diện và quy tắc hiển thị của Studocu.
+- `styles/*.css`: quy tắc hiển thị riêng cho từng website.
 
 ## Quyền extension
 

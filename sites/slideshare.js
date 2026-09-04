@@ -40,11 +40,22 @@
   const ID = { button: 'ss-download-pdf', overlay: 'ss-download-overlay', style: 'ss-download-style' };
   const job = { running: false, cancelled: false, request: null };
 
+  function removeTrialCta() {
+    document.querySelectorAll('button[data-cy="subscribe-button"],button[data-testid="subscribe-button"]').forEach(button => {
+      const item = button.closest('li');
+      (item || button).remove();
+    });
+    document.querySelectorAll('header a,header button,nav a,nav button').forEach(node => {
+      if (node.textContent.trim().toLowerCase() === 'download free for 30 days') (node.closest('li') || node).remove();
+    });
+  }
+
   function installStyle() {
     if (document.getElementById(ID.style)) return;
     const style = document.createElement('style');
     style.id = ID.style;
     style.textContent = `
+      button[data-cy="subscribe-button"],button[data-testid="subscribe-button"]{display:none!important;visibility:hidden!important;width:0!important;min-width:0!important;margin:0!important;padding:0!important;pointer-events:none!important}
       #${ID.button}{min-width:142px;justify-content:center}
       #${ID.button}:disabled{opacity:.6;cursor:wait}
       #${ID.button} .ss-download-label{display:inline-block;margin-left:8px;white-space:nowrap}
@@ -58,6 +69,7 @@
       @media(max-width:767px){#${ID.button}{width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button} .ss-download-label{display:none}}
     `;
     document.head.appendChild(style);
+    removeTrialCta();
   }
 
   function showOverlay() {
@@ -471,10 +483,7 @@
 
   function mount() {
     installStyle();
-    document.querySelectorAll('button[data-cy="subscribe-button"][data-testid="subscribe-button"]').forEach(button => {
-      const item = button.closest('li');
-      (item || button).remove();
-    });
+    removeTrialCta();
     const nativeButtons = [...document.querySelectorAll('button[data-testid="download-button"],button[data-cy="download-button-toolbar"]')]
       .filter(button => button.id !== ID.button);
     const template = nativeButtons[0] || null;

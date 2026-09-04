@@ -8,6 +8,22 @@
   const A4_H = 297 * 96 / 25.4;
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+  const CTA_STYLE_ID = 'document-downloader-hide-scribd-trial';
+  function hideTrialCta() {
+    if (!document.getElementById(CTA_STYLE_ID)) {
+      const style = document.createElement('style');
+      style.id = CTA_STYLE_ID;
+      style.textContent = '[data-e2e="megamenu-top-bar-read-free-button"]{display:none!important;visibility:hidden!important;width:0!important;min-width:0!important;margin:0!important;padding:0!important;pointer-events:none!important}';
+      (document.head || document.documentElement).appendChild(style);
+    }
+    document.querySelectorAll('[data-e2e="megamenu-top-bar-read-free-button"]').forEach(node => node.remove());
+    document.querySelectorAll('header a,header button,nav a,nav button').forEach(node => {
+      if (node.textContent.trim().toLowerCase() === 'download free for 30 days') node.remove();
+    });
+  }
+
+  hideTrialCta();
+
   function documentId() {
     return location.pathname.match(/^\/document\/(\d+)/)?.[1] || null;
   }
@@ -220,7 +236,7 @@
   }
 
   function makeDownloadButtonSingleAction() {
-    document.querySelectorAll('[data-e2e="megamenu-top-bar-read-free-button"]').forEach(button => button.remove());
+    hideTrialCta();
     const button = document.querySelector('[data-e2e="multi-format-download-button"]');
     if (!button) return;
     button.removeAttribute('aria-haspopup');

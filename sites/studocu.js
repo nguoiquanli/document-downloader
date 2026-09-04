@@ -616,34 +616,7 @@
     }
 
     function removeStudocuDownloadButtons() {
-        // Remove Studocu's native download button by data-test-selector
-        document.querySelectorAll('[data-test-selector="document-viewer-download-button-topbar"]').forEach(el => {
-            // Don't remove our own download button
-            if (!el.classList.contains('download-button-1') && !el.querySelector('.download-button-1')) {
-                el.remove();
-            }
-        });
-
-        // Remove buttons with class pattern Button_button that contain "Scarica" or "Download" text
-        document.querySelectorAll('button[class*="Button_button"], a[class*="Button_button"]').forEach(el => {
-            // Don't remove our own button
-            if (el.classList.contains('download-button-1')) return;
-            const text = el.textContent.trim().toLowerCase();
-            if (text === 'scarica' || text === 'download') {
-                el.remove();
-            }
-        });
-
-        // Remove download buttons inside hidden-on-mobile / hidden-from-tablet containers
-        document.querySelectorAll('div.hidden-on-mobile, div.hidden-from-tablet').forEach(container => {
-            container.querySelectorAll('button, a').forEach(el => {
-                if (el.classList.contains('download-button-1')) return;
-                const text = el.textContent.trim().toLowerCase();
-                if (text === 'scarica' || text === 'download') {
-                    el.remove();
-                }
-            });
-        });
+        // Nút gốc được tái sử dụng bởi module tải PDF ở cuối tệp.
     }
 
     function removePremiumButton() {
@@ -1399,28 +1372,19 @@
 
     // ---- Download button injection + click handling ----
 
-    function createButton() {
-        var btn = document.createElement('button');
-        btn.classList.add('download-button-1');
-        btn.setAttribute('data-studocuhack', 'download');
-        var icon = document.createElement('span');
-        icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = '⤓'; // downwards arrow to bar
-        icon.style.cssText = 'font-size:16px;line-height:1;';
-        var label = document.createElement('span');
-        label.classList.add('download-text');
-        label.textContent = 'Download';
-        btn.appendChild(icon);
-        btn.appendChild(label);
-        return btn;
-    }
-
     function refreshButtons() {
-        document.querySelectorAll('[data-test-selector="document-viewer-download-button-topbar"]').forEach(function(el) {
-            if (!el.querySelector('.download-button-1')) el.remove();
+        document.querySelectorAll('.download-button-1[data-studocuhack="download"]').forEach(function(el) {
+            el.remove();
         });
-        var c = document.querySelector('#viewer-wrapper');
-        if (c && !c.querySelector('.download-button-1')) c.prepend(createButton());
+        document.querySelectorAll('[data-test-selector="document-viewer-download-button-topbar"], [class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button[aria-label="Download"]').forEach(function(btn) {
+            btn.setAttribute('data-studocuhack', 'download');
+            btn.classList.add('studocuhack-native-download');
+            Array.from(btn.classList).forEach(function(name) {
+                if (name.includes('primaryGreen')) btn.classList.remove(name);
+            });
+            var label = btn.querySelector('[data-content="true"]');
+            if (label) label.textContent = 'Download';
+        });
         var d = document.querySelector('#modal-overlay');
         if (d) d.style.display = 'none';
     }
@@ -1434,10 +1398,14 @@
         if (e.target.closest('[data-studocuhack="download"]')) e.stopPropagation();
     }, true);
 
-    var obs = new MutationObserver(refreshButtons);
+    var refreshTimer;
+    var obs = new MutationObserver(function() {
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(refreshButtons, 50);
+    });
     function init() {
-        var el = document.querySelector('#viewer-wrapper');
-        if (el) obs.observe(el, { childList: true, subtree: true });
+        obs.disconnect();
+        obs.observe(document.documentElement, { childList: true, subtree: true });
         refreshButtons();
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
