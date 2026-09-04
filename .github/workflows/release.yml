@@ -27,17 +27,22 @@ jobs:
           zip -r "document-downloader-v${VERSION}.zip" . \
             -x ".git/*" ".github/*" "*.zip" ".DS_Store"
 
+      - name: Remove previous releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 100 --json tagName --jq '.[].tagName' | while read -r tag; do
+            [ -n "$tag" ] && gh release delete "$tag" --cleanup-tag --yes
+          done
+
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           TAG="v${VERSION}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "document-downloader-v${VERSION}.zip" --clobber
-          else
-            gh release create "$TAG" "document-downloader-v${VERSION}.zip" \
-              --target "$GITHUB_SHA" \
-              --title "Document Downloader ${TAG}" \
-              --notes-file <(awk '/^## 2\.0\.0/{flag=1;next}/^## /{flag=0}flag' CHANGELOG.md)
-          fi
+          awk -v heading="## ${VERSION}" 'index($0, heading) == 1 {flag=1; next} /^## / {flag=0} flag' CHANGELOG.md > release-notes.md
+          gh release create "$TAG" "document-downloader-v${VERSION}.zip" \
+            --target "$GITHUB_SHA" \
+            --title "Document Downloader ${TAG}" \
+            --notes-file release-notes.md

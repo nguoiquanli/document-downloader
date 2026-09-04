@@ -783,6 +783,7 @@
         if (debounceTimer) return;
         debounceTimer = setTimeout(() => {
             debounceTimer = null;
+            patchNextData();
             removeBanners();
             removeBlur();
             ensureAllPagesLoaded();
@@ -793,6 +794,7 @@
     }
 
     function runAll() {
+        patchNextData();
         removeBanners();
         removeBlur();
         ensureAllPagesLoaded();

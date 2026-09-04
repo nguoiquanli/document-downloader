@@ -1,11 +1,5 @@
 # Changelog
 
-## 2.0.1 — 2026-09-04
-
-- Ẩn triệt để CTA dùng thử “Download free for 30 days” trên thanh điều hướng Scribd và SlideShare.
-- Tái sử dụng nút Download gốc của Studocu cho chức năng dựng và lưu PDF trên cả desktop lẫn mobile.
-- Loại bỏ nút Download tách riêng của Studocu và đổi nút gốc sang màu xanh biển.
-
 ## 2.0.0 — 2026-09-04
 
 - Hợp nhất bộ tải Studocu, Scribd và SlideShare thành Chrome extension Manifest V3.
@@ -15,3 +9,7 @@
 - Việt hóa giao diện tải và thêm thao tác lưu có xác nhận.
 - Loại bỏ nút “Download free for 30 days” khỏi thanh trên cùng của Scribd và SlideShare.
 - Loại bỏ mã debug khỏi bản phát hành.
+- Ẩn CTA dùng thử bằng CSS tải sớm và MutationObserver trên Scribd/SlideShare.
+- Tái sử dụng nút Download gốc của Studocu cho chức năng lưu PDF và đổi nút sang xanh biển.
+- Xóa cookie Studocu/Studeersnel khi bắt đầu nạp trang để khởi tạo phiên xem sạch.
+- Chạy module Studocu từ `document_start` và tái áp dụng trạng thái chống blur khi DOM thay đổi.

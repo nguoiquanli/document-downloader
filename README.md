@@ -79,11 +79,13 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 
 | Quyền | Mục đích |
 | --- | --- |
+| `cookies` | Xóa cookie trên các miền Studocu/Studeersnel khi trang bắt đầu nạp |
+| `tabs` | Nhận biết lần điều hướng mới tới trang Studocu/Studeersnel |
 | Host Studocu/Studeersnel | Can thiệp trình xem và tải tài nguyên |
 | Host Scribd | Chạy giao diện tải và bản đọc nhúng |
 | Host SlideShare/CDN | Đọc trang Embed và tải ảnh slide |
 
-Extension không thu thập phân tích sử dụng, không lưu lịch sử duyệt web và không truyền tài liệu ra ngoài máy chủ nguồn.
+Extension không thu thập phân tích sử dụng, không lưu lịch sử duyệt web và không truyền tài liệu ra ngoài máy chủ nguồn. Việc xóa cookie Studocu có thể đăng xuất phiên hiện tại; cookie của Scribd, SlideShare và các website khác không bị tác động.
 
 ## Phát triển
 
