@@ -14,3 +14,4 @@
 - Xóa cookie Studocu/Studeersnel khi bắt đầu nạp trang để khởi tạo phiên xem sạch.
 - Chạy module Studocu từ `document_start` và tái áp dụng trạng thái chống blur khi DOM thay đổi.
 - Bắt trực tiếp nút Download gốc bằng CSS và capture event, không còn chậm hoặc mất thay thế khi React dựng lại thanh công cụ lúc cuộn.
+- Cô lập bản in Studocu trong iframe sạch để CSS in của website không làm lệch nội dung hoặc thu trang vào một góc.
