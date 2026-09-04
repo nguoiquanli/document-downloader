@@ -1043,10 +1043,10 @@
                 var len = pf.innerHTML.length;
                 if (pageRendered(pf)) {
                     if (len === lastLen) { stable++; } else { stable = 0; lastLen = len; }
-                    if (stable >= 1) { resolve(); return; }
+                    if (stable >= 2) { resolve(); return; }
                 }
-                if (tries++ > 18) { resolve(); return; }
-                setTimeout(check, 100);
+                if (tries++ > 30) { resolve(); return; } // ~4.5s safety cap per page
+                setTimeout(check, 150);
             }
             check();
         });
@@ -1075,15 +1075,7 @@
                 var pf = pfs[i];
                 pf.scrollIntoView({ behavior: 'instant', block: 'center' });
                 waitForPageReady(pf).then(function() {
-                    var clone = pf.cloneNode(true);
-                    var computed = getComputedStyle(pf);
-                    var sourceWidth = pf.offsetWidth || parseFloat(computed.width);
-                    var sourceHeight = pf.offsetHeight || parseFloat(computed.height);
-                    if (sourceWidth > 0 && sourceHeight > 0) {
-                        clone.dataset.shSourceWidth = String(sourceWidth);
-                        clone.dataset.shSourceHeight = String(sourceHeight);
-                    }
-                    captured.push(clone);
+                    captured.push(pf.cloneNode(true));
                     i++;
                     if (onProgress) onProgress(i, pfs.length);
                     next();
@@ -1122,7 +1114,7 @@
         var urls = Object.keys(unique);
         var map = {};
         var next = 0, done = 0;
-        var CONCURRENCY = 10;
+        var CONCURRENCY = 6;
 
         return new Promise(function(resolve) {
             function worker() {
@@ -1225,24 +1217,6 @@
         return container;
     }
 
-    function fitPagesToA4(container) {
-        Array.prototype.slice.call(container.children).forEach(function(pf) {
-            // Use the dimensions captured in the live viewer. Measuring again in
-            // the overlay can pick up responsive/print styles and double-scale a
-            // page even though its visual preview still appears correct.
-            var width = parseFloat(pf.dataset.shSourceWidth) || pf.offsetWidth || parseFloat(getComputedStyle(pf).width);
-            var height = parseFloat(pf.dataset.shSourceHeight) || pf.offsetHeight || parseFloat(getComputedStyle(pf).height);
-            if (!width || !height) return;
-            var sheet = document.createElement('section');
-            sheet.className = 'sh-print-sheet';
-            sheet.style.setProperty('--page-width', width + 'px');
-            sheet.style.setProperty('--page-height', height + 'px');
-            sheet.style.setProperty('--page-scale', String(Math.min(793.700787 / width, 1122.519685 / height)));
-            pf.before(sheet);
-            sheet.appendChild(pf);
-        });
-    }
-
     // Inject the styles for the in-page download overlay + print isolation.
     // The pdf2htmlEX document stylesheet is already loaded on the live page
     // (it lives in <head>), so the cloned `.p2hv` pages are styled automatically;
@@ -1268,7 +1242,6 @@
             '#sh-dl-overlay .sh-dl-pages .p2hv{margin:0 auto;}' +
             '#sh-dl-overlay .sh-dl-pages .pf{margin:12px auto !important;background:#fff !important;' +
             'box-shadow:0 2px 8px rgba(0,0,0,.4);display:block !important;filter:none !important;opacity:1 !important;}' +
-            '#sh-dl-overlay .sh-print-sheet{display:contents;}' +
             '#sh-dl-overlay .sh-dl-pages .page-content,#sh-dl-overlay .sh-dl-pages .pc{' +
             'display:block !important;visibility:visible !important;filter:none !important;opacity:1 !important;}' +
             '#sh-dl-overlay .sh-dl-pages .pf img{filter:none !important;opacity:1 !important;visibility:visible !important;}' +
@@ -1277,86 +1250,11 @@
             'html,body{background:#fff !important;height:auto !important;overflow:visible !important;}' +
             '#sh-dl-overlay{position:static !important;inset:auto !important;overflow:visible !important;background:#fff !important;height:auto !important;}' +
             '#sh-dl-overlay .sh-dl-bar{display:none !important;}' +
-            '#sh-dl-overlay .sh-dl-pages .p2hv{width:210mm !important;margin:0 !important;}' +
-            '#sh-dl-overlay .sh-print-sheet{display:block !important;position:relative !important;width:210mm !important;height:297mm !important;' +
-            'margin:0 !important;padding:0 !important;overflow:hidden !important;background:#fff !important;page-break-after:always;break-after:page;}' +
-            '#sh-dl-overlay .sh-print-sheet:last-child{page-break-after:auto;break-after:auto;}' +
-            '#sh-dl-overlay .sh-print-sheet>.pf{position:absolute !important;left:50% !important;top:50% !important;' +
-            'width:var(--page-width) !important;height:var(--page-height) !important;margin:0 !important;box-shadow:none !important;' +
-            'transform:translate(-50%,-50%) scale(var(--page-scale)) !important;' +
-            'transform-origin:center center !important;page-break-after:auto !important;break-after:auto !important;}' +
-            '@page{size:A4 portrait;margin:0;}' +
+            '#sh-dl-overlay .sh-dl-pages .pf{margin:0 !important;box-shadow:none !important;page-break-after:always;break-after:page;}' +
+            '#sh-dl-overlay .sh-dl-pages .pf:last-child{page-break-after:auto;}' +
+            '@page{margin:0;}' +
             '}';
         document.head.appendChild(style);
-    }
-
-    // Print from an isolated document so Studocu's own print/responsive layout
-    // cannot re-position or apply a second scale to the captured pages.
-    function printCapturedDocument(container) {
-        var oldFrame = document.getElementById('sh-print-frame');
-        if (oldFrame) oldFrame.remove();
-        var frame = document.createElement('iframe');
-        frame.id = 'sh-print-frame';
-        frame.setAttribute('aria-hidden', 'true');
-        // Keep an A4-sized viewport. A 1px hidden iframe would activate Studocu's
-        // mobile media queries and recreate the "tiny page in one corner" bug.
-        frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none;';
-        document.body.appendChild(frame);
-
-        var doc = frame.contentDocument;
-        doc.open();
-        doc.write('<!doctype html><html><head><meta charset="utf-8"><title>' + escapeHtml(getTitle()) + '</title></head><body></body></html>');
-        doc.close();
-        document.head.querySelectorAll('link[rel="stylesheet"], style:not(#sh-dl-style)').forEach(function(node) {
-            var copy = node.cloneNode(true);
-            if (copy.tagName === 'LINK') copy.href = node.href;
-            doc.head.appendChild(copy);
-        });
-
-        var printStyle = doc.createElement('style');
-        printStyle.textContent =
-            '@page{size:A4 portrait;margin:0!important;}' +
-            'html,body{width:210mm!important;min-width:210mm!important;height:auto!important;margin:0!important;padding:0!important;' +
-            'overflow:visible!important;background:#fff!important;box-sizing:border-box!important;}' +
-            '#sh-print-root,#sh-print-root>.p2hv{display:block!important;position:static!important;width:210mm!important;' +
-            'min-width:210mm!important;margin:0!important;padding:0!important;transform:none!important;zoom:1!important;}' +
-            '.sh-print-sheet{display:block!important;position:relative!important;box-sizing:border-box!important;' +
-            'width:210mm!important;min-width:210mm!important;max-width:210mm!important;height:297mm!important;' +
-            'min-height:297mm!important;max-height:297mm!important;margin:0!important;padding:0!important;border:0!important;' +
-            'overflow:hidden!important;background:#fff!important;break-inside:avoid!important;page-break-inside:avoid!important;' +
-            'break-after:page!important;page-break-after:always!important;}' +
-            '.sh-print-sheet:last-child{break-after:auto!important;page-break-after:auto!important;}' +
-            '.sh-print-sheet>.pf{display:block!important;position:absolute!important;left:50%!important;top:50%!important;' +
-            'width:var(--page-width)!important;min-width:0!important;max-width:none!important;' +
-            'height:var(--page-height)!important;min-height:0!important;max-height:none!important;' +
-            'margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;' +
-            'transform:translate(-50%,-50%) scale(var(--page-scale))!important;transform-origin:center center!important;' +
-            'break-inside:avoid!important;page-break-inside:avoid!important;break-after:auto!important;page-break-after:auto!important;}' +
-            '.pf,.pc,.page-content,.pf img{visibility:visible!important;opacity:1!important;filter:none!important;}' +
-            '.pc,.page-content{display:block!important;}';
-        doc.head.appendChild(printStyle);
-
-        var root = doc.createElement('main');
-        root.id = 'sh-print-root';
-        root.appendChild(doc.importNode(container, true));
-        doc.body.appendChild(root);
-        var images = Array.prototype.slice.call(doc.images);
-        var imageReady = Promise.all(images.map(function(img) {
-            if (img.complete) return Promise.resolve();
-            return new Promise(function(resolve) { img.onload = resolve; img.onerror = resolve; });
-        }));
-        var fontsReady = doc.fonts && doc.fonts.ready ? doc.fonts.ready.catch(function() {}) : Promise.resolve();
-        Promise.all([imageReady, fontsReady]).then(function() {
-            requestAnimationFrame(function() {
-                requestAnimationFrame(function() {
-                    frame.contentWindow.focus();
-                    frame.contentWindow.print();
-                });
-            });
-        });
-        frame.contentWindow.addEventListener('afterprint', function() {
-            setTimeout(function() { frame.remove(); }, 500);
-        }, { once: true });
     }
 
     // Build the overlay DOM (loading state). Returns handles for updating it.
@@ -1376,6 +1274,7 @@
         printBtn.textContent = 'Lưu thành PDF';
         printBtn.disabled = true;
         printBtn.style.opacity = '0.5';
+        printBtn.addEventListener('click', function() { window.print(); });
         var closeBtn = document.createElement('button');
         closeBtn.className = 'sh-dl-close';
         closeBtn.textContent = 'Đóng';
@@ -1439,12 +1338,10 @@
         }).then(function(container) {
             ui.loading.remove();
             ui.pages.appendChild(container);
-            fitPagesToA4(container);
             ui.printBtn.disabled = false;
             ui.printBtn.style.opacity = '1';
-            ui.printBtn.onclick = function() { printCapturedDocument(container); };
             setTimeout(function() {
-                printCapturedDocument(container);
+                window.print();
             }, 250);
         }).catch(function() {
             ui.sub.textContent = 'Could not build the document. Please refresh and try again.';

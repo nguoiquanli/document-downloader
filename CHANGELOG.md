@@ -14,4 +14,5 @@
 - Xóa cookie Studocu/Studeersnel khi bắt đầu nạp trang để khởi tạo phiên xem sạch.
 - Chạy module Studocu từ `document_start` và tái áp dụng trạng thái chống blur khi DOM thay đổi.
 - Bắt trực tiếp nút Download gốc bằng CSS và capture event, không còn chậm hoặc mất thay thế khi React dựng lại thanh công cụ lúc cuộn.
-- Cô lập bản in Studocu trong iframe sạch để CSS in của website không làm lệch nội dung hoặc thu trang vào một góc.
+- Khôi phục cơ chế in gốc ổn định của StudocuHack: in trực tiếp các trang `.pf` đã clone trong `.p2hv`, không bọc trang A4, không tự scale và không dùng iframe.
+- Khôi phục thời gian chờ trang ổn định cùng mức đồng thời nhúng ảnh của StudocuHack v2.11.0 để tránh clone nội dung chưa dựng xong.

@@ -6,7 +6,7 @@ Document Downloader là Chrome extension Manifest V3 giúp lưu tài liệu đan
 
 | Website | Cách xử lý | Đầu ra |
 | --- | --- | --- |
-| Studocu / Studeersnel | Nạp trang, giữ lớp chữ và hình ảnh, căn từng trang vào A4 | Hộp thoại **Lưu thành PDF** |
+| Studocu / Studeersnel | Nạp trang, giữ nguyên lớp chữ, hình ảnh và kích thước trang gốc | Hộp thoại **Lưu thành PDF** |
 | Scribd | Mở bản đọc nhúng, chụp từng trang và dựng bố cục A4 | Hộp thoại **Lưu thành PDF** |
 | SlideShare | Đọc URL Embed, tải ảnh 2048, chuyển WebP sang JPEG và ghép PDF | Tệp PDF qua nút **Lưu thành PDF** |
 
@@ -17,7 +17,7 @@ Document Downloader là Chrome extension Manifest V3 giúp lưu tài liệu đan
 - Loại bỏ menu xổ xuống khỏi nút Download của Scribd.
 - Tải ảnh SlideShare đồng thời, giữ đúng thứ tự và độ phân giải 2048.
 - Nén SlideShare thành JPEG 90% để giảm dung lượng mà vẫn giữ độ rõ.
-- Tự căn từng trang Studocu và Scribd vào khổ A4.
+- Giữ nguyên bố cục trang gốc của Studocu; căn trang Scribd vào khổ A4.
 - Giao diện tiếng Việt, hiển thị tiến trình và cho phép hủy.
 - Không gửi nội dung tài liệu tới máy chủ trung gian.
 
@@ -52,7 +52,7 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 1. Mở tài liệu trong trình xem Studocu hoặc Studeersnel.
 2. Bấm **Download**.
 3. Hộp thoại in tự mở sau khi quét xong.
-4. Chọn **Save as PDF**, khổ A4, lề `None` và tắt header/footer.
+4. Chọn **Save as PDF**, lề `None` và tắt header/footer. Giữ tỷ lệ mặc định để Chrome dùng đúng kích thước trang của tài liệu.
 
 ## Cấu trúc
 
