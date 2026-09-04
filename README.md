@@ -69,7 +69,7 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 └── assets/icons/
 ```
 
-- `background.js`: quản lý cookie Studocu và tải ảnh SlideShare qua host permission.
+- `background.js`: tải ảnh SlideShare qua host permission.
 - `sites/*.js`: module độc lập cho từng website.
 - `styles/studocu.css`: giao diện và quy tắc hiển thị của Studocu.
 
@@ -77,8 +77,6 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 
 | Quyền | Mục đích |
 | --- | --- |
-| `cookies` | Xóa cookie mục tiêu khi Studocu/Studeersnel được nạp |
-| `tabs` | Nhận biết điều hướng tới trang Studocu |
 | Host Studocu/Studeersnel | Can thiệp trình xem và tải tài nguyên |
 | Host Scribd | Chạy giao diện tải và bản đọc nhúng |
 | Host SlideShare/CDN | Đọc trang Embed và tải ảnh slide |

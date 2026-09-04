@@ -1,14 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Document Downloader",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "description": "Tải tài liệu từ Studocu, Scribd và SlideShare.",
   "icons": {
     "16": "assets/icons/16.png",
     "48": "assets/icons/48.png",
     "128": "assets/icons/128.png"
   },
-  "permissions": ["cookies", "tabs"],
   "host_permissions": [
     "https://doc-assets.studocu.com/*",
     "https://*.studocu.com/*",

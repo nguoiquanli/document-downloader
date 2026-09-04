@@ -471,6 +471,10 @@
 
   function mount() {
     installStyle();
+    document.querySelectorAll('button[data-cy="subscribe-button"][data-testid="subscribe-button"]').forEach(button => {
+      const item = button.closest('li');
+      (item || button).remove();
+    });
     const nativeButtons = [...document.querySelectorAll('button[data-testid="download-button"],button[data-cy="download-button-toolbar"]')]
       .filter(button => button.id !== ID.button);
     const template = nativeButtons[0] || null;

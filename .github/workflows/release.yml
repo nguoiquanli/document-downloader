@@ -1,0 +1,43 @@
+name: Release extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - manifest.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: echo "version=$(jq -r .version manifest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Build extension ZIP
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          zip -r "document-downloader-v${VERSION}.zip" . \
+            -x ".git/*" ".github/*" "*.zip" ".DS_Store"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "document-downloader-v${VERSION}.zip" --clobber
+          else
+            gh release create "$TAG" "document-downloader-v${VERSION}.zip" \
+              --target "$GITHUB_SHA" \
+              --title "Document Downloader ${TAG}" \
+              --notes-file <(awk '/^## 2\.0\.0/{flag=1;next}/^## /{flag=0}flag' CHANGELOG.md)
+          fi

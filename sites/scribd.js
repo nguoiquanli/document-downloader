@@ -220,6 +220,7 @@
   }
 
   function makeDownloadButtonSingleAction() {
+    document.querySelectorAll('[data-e2e="megamenu-top-bar-read-free-button"]').forEach(button => button.remove());
     const button = document.querySelector('[data-e2e="multi-format-download-button"]');
     if (!button) return;
     button.removeAttribute('aria-haspopup');
