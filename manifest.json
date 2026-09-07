@@ -14,10 +14,7 @@
     "https://*.studocu.com/*",
     "https://*.studeersnel.nl/*",
     "https://*.studocu.vn/*",
-    "https://www.scribd.com/*",
-    "https://scribd.com/*",
-    "https://www.slideshare.net/*",
-    "https://slideshare.net/*",
+    "https://*.scribd.com/*",
     "https://*.slideshare.net/*",
     "https://image.slidesharecdn.com/*",
     "https://*.slidesharecdn.com/*"
@@ -26,11 +23,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.studocu.com/*",
         "https://*.studocu.com/*",
-        "https://www.studeersnel.nl/*",
         "https://*.studeersnel.nl/*",
-        "https://www.studocu.vn/*",
         "https://*.studocu.vn/*"
       ],
       "js": ["sites/studocu.js"],
@@ -38,17 +32,13 @@
       "run_at": "document_start"
     },
     {
-      "matches": ["https://www.scribd.com/document/*", "https://scribd.com/document/*"],
+      "matches": ["https://*.scribd.com/document/*"],
       "js": ["sites/scribd.js"],
       "css": ["styles/scribd.css"],
       "run_at": "document_start"
     },
     {
-      "matches": [
-        "https://www.slideshare.net/slideshow/*",
-        "https://slideshare.net/slideshow/*",
-        "https://*.slideshare.net/slideshow/*"
-      ],
+      "matches": ["https://*.slideshare.net/slideshow/*"],
       "js": ["sites/slideshare.js"],
       "css": ["styles/slideshare.css"],
       "all_frames": true,
