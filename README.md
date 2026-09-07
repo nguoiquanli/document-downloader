@@ -2,6 +2,14 @@
 
 Document Downloader là Chrome extension Manifest V3 giúp lưu tài liệu đang xem từ Studocu, Scribd và SlideShare. Mỗi website nằm trong một module riêng để dễ bảo trì khi giao diện nguồn thay đổi.
 
+## Miễn trừ trách nhiệm
+
+Dự án này chỉ được cung cấp cho mục đích học tập, nghiên cứu kỹ thuật và thử nghiệm cá nhân. Dự án không khuyến khích việc tải xuống, sao chép, phân phối hoặc sử dụng trái phép nội dung có bản quyền.
+
+Người dùng chỉ nên xử lý tài liệu do mình sở hữu, tài liệu thuộc phạm vi công cộng hoặc tài liệu mà mình đã được chủ sở hữu cho phép truy cập và sử dụng. Người dùng tự chịu trách nhiệm tuân thủ pháp luật, quy định bản quyền và điều khoản dịch vụ của các website liên quan. Tác giả và những người đóng góp không chịu trách nhiệm đối với hành vi sử dụng sai mục đích hoặc thiệt hại phát sinh từ việc sử dụng dự án.
+
+Tên, nhãn hiệu và dịch vụ Studocu, Scribd, SlideShare thuộc về các chủ sở hữu tương ứng. Dự án không liên kết, không được tài trợ và không được chứng thực bởi các dịch vụ này.
+
 ## Nguồn được hỗ trợ
 
 | Website | Cách xử lý | Đầu ra |
@@ -114,14 +122,6 @@ Dự án được phát triển độc lập và có tham khảo ý tưởng, ph
 - Bài viết của [Chu Minh Hiếu](https://www.facebook.com/groups/j2team.community/posts/2594998714165566/) trong cộng đồng J2TEAM Community cho phương pháp xử lý tài liệu Scribd.
 
 Xin cảm ơn các tác giả và cộng đồng đã chia sẻ kiến thức làm nền tảng tham khảo cho dự án.
-
-## Miễn trừ trách nhiệm
-
-Dự án này chỉ được cung cấp cho mục đích học tập, nghiên cứu kỹ thuật và thử nghiệm cá nhân. Dự án không khuyến khích việc tải xuống, sao chép, phân phối hoặc sử dụng trái phép nội dung có bản quyền.
-
-Người dùng chỉ nên xử lý tài liệu do mình sở hữu, tài liệu thuộc phạm vi công cộng hoặc tài liệu mà mình đã được chủ sở hữu cho phép truy cập và sử dụng. Người dùng tự chịu trách nhiệm tuân thủ pháp luật, quy định bản quyền và điều khoản dịch vụ của các website liên quan. Tác giả và những người đóng góp không chịu trách nhiệm đối với hành vi sử dụng sai mục đích hoặc thiệt hại phát sinh từ việc sử dụng dự án.
-
-Tên, nhãn hiệu và dịch vụ Studocu, Scribd, SlideShare thuộc về các chủ sở hữu tương ứng. Dự án không liên kết, không được tài trợ và không được chứng thực bởi các dịch vụ này.
 
 ## Giấy phép
 
