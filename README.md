@@ -14,9 +14,9 @@ Tên, nhãn hiệu và dịch vụ Studocu, Scribd, SlideShare thuộc về các
 
 | Website | Cách xử lý | Đầu ra |
 | --- | --- | --- |
-| Studocu / Studeersnel | Nạp trang, giữ nguyên lớp chữ, hình ảnh và kích thước trang gốc | Hộp thoại **Lưu thành PDF** |
-| Scribd | Mở bản đọc nhúng, chụp từng trang và dựng bố cục A4 | Hộp thoại **Lưu thành PDF** |
-| SlideShare | Đọc `secretUrl` trong dữ liệu trang, mở bản Embed trực tiếp, tải ảnh chất lượng cao và ghép PDF | Tệp PDF qua nút **Lưu thành PDF** |
+| Studocu / Studeersnel | Nạp trang, giữ nguyên lớp chữ, hình ảnh và kích thước trang gốc | **Tệp PDF** |
+| Scribd | Mở bản đọc nhúng, chụp từng trang và dựng bố cục A4 | **Tệp PDF** |
+| SlideShare | Đọc `secretUrl` trong dữ liệu trang, mở bản Embed trực tiếp, tải ảnh chất lượng cao và ghép PDF | **Tệp PDF** |
 
 ## Tính năng
 
