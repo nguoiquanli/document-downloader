@@ -172,64 +172,26 @@
     return collectSlides(doc);
   }
 
-  function embedUrlFromText(text) {
-    const match = String(text || '').match(/<iframe[^>]+src=["']([^"']+\/embed_code\/key\/[^"']+)["']/i);
-    if (!match) return null;
-    const url = new URL(match[1], location.href);
-    if (!/(^|\.)slideshare\.net$/.test(url.hostname)) return null;
-    return location.origin + url.pathname + url.search;
+  function secretUrlFromPage() {
+    const scripts = [
+      document.querySelector('script#__NEXT_DATA__'),
+      ...document.querySelectorAll('script[type="application/json"]'),
+      ...document.scripts
+    ].filter(Boolean);
+    const visited = new Set();
+    for (const script of scripts) {
+      if (visited.has(script)) continue;
+      visited.add(script);
+      const match = (script.textContent || '').match(/["']secretUrl["']\s*:\s*["']([A-Za-z0-9_-]+)["']/);
+      if (match) return match[1];
+    }
+    return null;
   }
 
   async function getEmbedUrl() {
-    const closePopup = textarea => {
-      const dialog = textarea?.closest('dialog') || document.querySelector('dialog[open]');
-      const close = dialog?.querySelector('button[data-cy="modal-close-button"][aria-label="Close"]');
-      close?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
-      close?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-      close?.click();
-      if (dialog) {
-        if (dialog.open) dialog.close();
-        dialog.removeAttribute('open');
-        dialog.hidden = true;
-        dialog.remove();
-      }
-    };
-    const read = () => {
-      const textarea = document.querySelector('textarea[data-cy="share-embed-link"],#embed-code');
-      const url = embedUrlFromText(textarea?.value);
-      return url ? { url, textarea } : null;
-    };
-    const existing = read();
-    if (existing) {
-      closePopup(existing.textarea);
-      return existing.url;
-    }
-    const button = document.querySelector('button[data-cy="embed-button"]');
-    if (!button) throw new Error('Không tìm thấy nút Embed.');
-    return new Promise((resolve, reject) => {
-      let settled = false;
-      const observer = new MutationObserver(check);
-      const timer = setTimeout(() => finish(null), 4000);
-      function finish(found) {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        observer.disconnect();
-        if (!found) {
-          reject(new Error('Không lấy được liên kết Embed.'));
-          return;
-        }
-        closePopup(found.textarea);
-        resolve(found.url);
-      }
-      function check() {
-        const found = read();
-        if (found) finish(found);
-      }
-      observer.observe(document.documentElement, { childList: true, subtree: true });
-      button.click();
-      check();
-    });
+    const secret = secretUrlFromPage();
+    if (!secret) throw new Error('Không tìm thấy mã secretUrl của tài liệu.');
+    return `https://www.slideshare.net/slideshow/embed_code/key/${encodeURIComponent(secret)}`;
   }
 
   function loadFrame(frame, url) {

@@ -9,3 +9,8 @@
   overflow: hidden !important;
   pointer-events: none !important;
 }
+
+[data-e2e^="doc-actions-download-button"],
+[data-e2e^="doc-actions-print-button"] {
+  display: none !important;
+}

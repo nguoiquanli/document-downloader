@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.2 — 2026-09-07
+
+- Lấy liên kết Embed của SlideShare trực tiếp từ trường `secretUrl` trong dữ liệu trang, không còn mở hoặc thao tác với hộp thoại Embed.
+- Thay nút Download dạng dropdown của Scribd bằng nút một hành động độc lập để loại bỏ hoàn toàn hiện tượng menu chớp khi rê chuột.
+- Không còn đóng hoặc xóa các menu khác của Scribd, giữ nguyên hoạt động của Share và các tính năng còn lại.
+- Loại bỏ nút Download và Print trong nhóm menu thao tác tài liệu của Scribd.
+- Xác nhận và duy trì đầy đủ quyền truy cập cho các miền Studocu, Studeersnel, Scribd, SlideShare và SlideShare CDN.
+
 ## 2.0.1 — 2026-09-04
 
 - Tăng tốc capture Studocu bằng cách giảm chu kỳ kiểm tra trạng thái trang từ 150 ms xuống 75 ms.

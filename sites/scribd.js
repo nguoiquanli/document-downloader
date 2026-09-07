@@ -235,17 +235,50 @@
     frame.src = `${location.origin}/embeds/${id}/content`;
   }
 
+  function removeSecondaryActions() {
+    document.querySelectorAll(
+      '[data-e2e^="doc-actions-download-button"],[data-e2e^="doc-actions-print-button"]'
+    ).forEach(button => (button.closest('li') || button).remove());
+  }
+
   function makeDownloadButtonSingleAction() {
     hideTrialCta();
-    const button = document.querySelector('[data-e2e="multi-format-download-button"]');
+    removeSecondaryActions();
+
+    const custom = document.querySelector('[data-document-downloader-action="true"]');
+    const nativeButtons = [...document.querySelectorAll(
+      '[data-e2e="multi-format-download-button"]:not([data-document-downloader-action])'
+    )];
+
+    if (custom) {
+      for (const button of nativeButtons) {
+        const wrapper = button.closest('[class*="DropdownMenu-module_wrapper"]');
+        (wrapper || button).remove();
+      }
+      return;
+    }
+
+    const button = nativeButtons[0];
     if (!button) return;
-    button.removeAttribute('aria-haspopup');
-    button.removeAttribute('aria-expanded');
-    button.removeAttribute('data-state');
-    button.querySelector('[class*="ButtonCore-module_rightIcon"], .dZ26XU')?.remove();
+    const clone = button.cloneNode(true);
+    clone.dataset.documentDownloaderAction = 'true';
+    clone.removeAttribute('id');
+    clone.removeAttribute('aria-haspopup');
+    clone.removeAttribute('aria-expanded');
+    clone.removeAttribute('data-state');
+    clone.querySelector('[class*="ButtonCore-module_rightIcon"], .dZ26XU')?.remove();
+
     const wrapper = button.closest('[class*="DropdownMenu-module_wrapper"]');
-    if (wrapper) wrapper.dataset.singleDownloadAction = 'true';
-    document.querySelectorAll('[role="menu"][data-state="open"]').forEach(menu => menu.remove());
+    const replacement = document.createElement('div');
+    replacement.dataset.documentDownloaderWrapper = 'true';
+    replacement.appendChild(clone);
+    if (wrapper) wrapper.replaceWith(replacement);
+    else button.replaceWith(replacement);
+
+    for (const extra of nativeButtons.slice(1)) {
+      const extraWrapper = extra.closest('[class*="DropdownMenu-module_wrapper"]');
+      (extraWrapper || extra).remove();
+    }
   }
 
   document.addEventListener('click', event => {
