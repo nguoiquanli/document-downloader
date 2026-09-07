@@ -247,9 +247,12 @@
 
     const custom = document.querySelector('[data-document-downloader-action="true"]');
     const nativeButtons = [...document.querySelectorAll(
-      'button[data-e2e="multi-format-download-button"]:not([data-document-downloader-action]),' +
-      'button[data-e2e$="multi-format-download-button"]:not([data-document-downloader-action])'
-    )].filter(button => !button.closest('[data-e2e="doc-actions-container"]'));
+      'button[data-e2e*="download"]:not([data-document-downloader-action])'
+    )].filter(button =>
+      !button.closest('[data-e2e="doc-actions-container"]') &&
+      (button.matches('[data-e2e*="multi-format"]') ||
+       button.closest('[class*="DropdownMenu-module_wrapper"]'))
+    );
 
     if (custom) {
       for (const button of nativeButtons) {
@@ -285,10 +288,12 @@
   document.addEventListener('click', event => {
     const button = event.target.closest?.(
       'button[data-document-downloader-action="true"],' +
-      'button[data-e2e="multi-format-download-button"],' +
-      'button[data-e2e$="multi-format-download-button"]'
+      'button[data-e2e*="download"]'
     );
-    if (!button || button.closest('[data-e2e="doc-actions-container"]')) return;
+    if (!button ||
+        button.closest('[data-e2e="doc-actions-container"]') ||
+        (!button.matches('[data-document-downloader-action="true"],[data-e2e*="multi-format"]') &&
+         !button.closest('[class*="DropdownMenu-module_wrapper"]'))) return;
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();

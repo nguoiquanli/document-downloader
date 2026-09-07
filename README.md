@@ -8,11 +8,11 @@ Document Downloader là Chrome extension Manifest V3 giúp lưu tài liệu đan
 | --- | --- | --- |
 | Studocu / Studeersnel | Nạp trang, giữ nguyên lớp chữ, hình ảnh và kích thước trang gốc | Hộp thoại **Lưu thành PDF** |
 | Scribd | Mở bản đọc nhúng, chụp từng trang và dựng bố cục A4 | Hộp thoại **Lưu thành PDF** |
-| SlideShare | Đọc URL Embed, tải ảnh 2048, chuyển WebP sang JPEG và ghép PDF | Tệp PDF qua nút **Lưu thành PDF** |
+| SlideShare | Đọc `secretUrl` trong dữ liệu trang, mở bản Embed trực tiếp, tải ảnh chất lượng cao và ghép PDF | Tệp PDF qua nút **Lưu thành PDF** |
 
 ## Tính năng
 
-- Thay nút tải gốc bằng luồng tải phù hợp cho từng website.
+- Thay nút tải gốc bằng luồng tải phù hợp cho từng website, đồng thời giữ nguyên nhãn theo ngôn ngữ hiện tại của trang.
 - Loại bỏ nút “Download free for 30 days” trên thanh trên cùng của Scribd và SlideShare.
 - Loại bỏ menu xổ xuống khỏi nút Download của Scribd.
 - Tải ảnh SlideShare đồng thời, giữ đúng thứ tự và độ phân giải 2048.
@@ -44,7 +44,7 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 
 1. Mở URL dạng `slideshare.net/slideshow/...`.
 2. Bấm **Download**.
-3. Extension tự lấy liên kết Embed, đóng popup và xử lý ảnh.
+3. Extension tự lấy `secretUrl`, mở bản Embed trực tiếp và xử lý ảnh.
 4. Khi báo sẵn sàng, bấm **Lưu thành PDF**.
 
 ### Studocu
@@ -106,10 +106,23 @@ Sau đó kiểm tra `manifest.json`, nhấn **Reload** tại `chrome://extension
 - Scribd và Studocu chỉ xử lý được nội dung mà trình duyệt thực sự nhận.
 - Chất lượng PDF phụ thuộc tài nguyên do website nguồn cung cấp.
 
-## Sử dụng có trách nhiệm
+## Nguồn tham khảo và ghi nhận
 
-Chỉ tải tài liệu bạn sở hữu hoặc có quyền truy cập và sử dụng. Người dùng chịu trách nhiệm tuân thủ điều khoản dịch vụ và quy định bản quyền áp dụng.
+Dự án được phát triển độc lập và có tham khảo ý tưởng, phương pháp xử lý từ:
+
+- [StudocuHack](https://github.com/danieltyukov/studocuhack) của Daniel Tyukov cho cơ chế xử lý tài liệu Studocu.
+- Bài viết của [Chu Minh Hiếu](https://www.facebook.com/groups/j2team.community/posts/2594998714165566/) trong cộng đồng J2TEAM Community cho phương pháp xử lý tài liệu Scribd.
+
+Xin cảm ơn các tác giả và cộng đồng đã chia sẻ kiến thức làm nền tảng tham khảo cho dự án.
+
+## Miễn trừ trách nhiệm
+
+Dự án này chỉ được cung cấp cho mục đích học tập, nghiên cứu kỹ thuật và thử nghiệm cá nhân. Dự án không khuyến khích việc tải xuống, sao chép, phân phối hoặc sử dụng trái phép nội dung có bản quyền.
+
+Người dùng chỉ nên xử lý tài liệu do mình sở hữu, tài liệu thuộc phạm vi công cộng hoặc tài liệu mà mình đã được chủ sở hữu cho phép truy cập và sử dụng. Người dùng tự chịu trách nhiệm tuân thủ pháp luật, quy định bản quyền và điều khoản dịch vụ của các website liên quan. Tác giả và những người đóng góp không chịu trách nhiệm đối với hành vi sử dụng sai mục đích hoặc thiệt hại phát sinh từ việc sử dụng dự án.
+
+Tên, nhãn hiệu và dịch vụ Studocu, Scribd, SlideShare thuộc về các chủ sở hữu tương ứng. Dự án không liên kết, không được tài trợ và không được chứng thực bởi các dịch vụ này.
 
 ## Giấy phép
 
-Phát hành theo giấy phép MIT. Xem [LICENSE](LICENSE).
+Mã nguồn được phát hành theo giấy phép MIT. Xem [LICENSE](LICENSE).

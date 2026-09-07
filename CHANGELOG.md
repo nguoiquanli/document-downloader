@@ -2,10 +2,11 @@
 
 ## 2.0.3 — 2026-09-07
 
-- Nhận diện và thay nút Download của Scribd bằng thuộc tính `data-e2e`, không phụ thuộc vào nội dung hoặc ngôn ngữ của nhãn nút.
+- Nhận diện nút tải Scribd bằng thuộc tính `data-e2e` chứa vai trò tải và cấu trúc DropdownMenu, không phụ thuộc vào ngôn ngữ của nhãn.
+- Sao chép nguyên nội dung hiển thị của nút Scribd gốc sang nút thay thế rồi loại bỏ listener dropdown.
+- SlideShare giữ nguyên nhãn bản địa hóa lấy từ element `.ellipsis` của nút gốc, không ép tên “Download” và không tạo nhãn trùng.
 - Mở rộng content script Scribd ra toàn miền và nhận diện ID tài liệu trong cả đường dẫn có tiền tố ngôn ngữ.
-- Thay trực tiếp nhãn `.ellipsis` của nút SlideShare thành “Download”, không còn chèn nhãn thứ hai khi trang dùng ngôn ngữ khác.
-- Giữ nguyên chức năng lưu PDF trên Scribd và SlideShare.
+- Hoàn thiện README với mô tả kỹ thuật, credit nguồn tham khảo và miễn trừ trách nhiệm cho mục đích học tập.
 
 ## 2.0.2 — 2026-09-07
 

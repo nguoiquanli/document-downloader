@@ -463,13 +463,13 @@
     wrapper.dataset.scriptDownload = 'true';
 
     const button = document.createElement('button');
-    button.id = ID.button; button.type = 'button'; button.setAttribute('aria-label', 'Download');
+    button.id = ID.button;
+    button.type = 'button';
+    button.setAttribute('aria-label', template?.getAttribute('aria-label') || 'Download');
     button.className = template?.className || 'button Button-module__4HgN-q__root Button-module__4HgN-q__accent Button-module__4HgN-q__filled Button-module__4HgN-q__large';
     button.innerHTML = template?.innerHTML || `<span><span class="Button-module__4HgN-q__iconSlot"><span class="Button-module__4HgN-q__iconEl"><span role="img" aria-label="download icon" class="icon Icon-module__J9mFQG__icon Icon-module__J9mFQG__mask" style="--icon:url(/images/next/svg/download.svg)"></span></span><span class="Button-module__4HgN-q__spinnerEl"><svg class="spinner" viewBox="0 0 50 50" width="24" height="24" fill="currentColor"><path d="M43.935 25.145c0-10.318-8.364-18.683-18.683-18.683-10.318 0-18.683 8.365-18.683 18.683h4.068c0-8.071 6.543-14.615 14.615-14.615s14.615 6.543 14.615 14.615h4.068Z"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur=".6s" repeatCount="indefinite"/></path></svg></span></span></span>`;
-    const label = button.querySelector('.ellipsis, [class*="ellipsis"]') || document.createElement('span');
-    label.textContent = 'Download';
-    label.classList.add('ss-download-label');
-    if (!label.isConnected) (button.firstElementChild || button).appendChild(label);
+    const label = button.querySelector('.ellipsis, [class*="ellipsis"]');
+    if (label) label.classList.add('ss-download-label');
     button.onclick = downloadPdf; wrapper.appendChild(button);
     if (nativeWrapper) nativeWrapper.replaceWith(wrapper); else target.appendChild(wrapper);
     for (const extra of nativeButtons.slice(1)) (extra.closest('.download-button') || extra).remove();
