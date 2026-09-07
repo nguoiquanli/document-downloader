@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.3 — 2026-09-07
+
+- Nhận diện và thay nút Download của Scribd bằng thuộc tính `data-e2e`, không phụ thuộc vào nội dung hoặc ngôn ngữ của nhãn nút.
+- Mở rộng content script Scribd ra toàn miền và nhận diện ID tài liệu trong cả đường dẫn có tiền tố ngôn ngữ.
+- Thay trực tiếp nhãn `.ellipsis` của nút SlideShare thành “Download”, không còn chèn nhãn thứ hai khi trang dùng ngôn ngữ khác.
+- Giữ nguyên chức năng lưu PDF trên Scribd và SlideShare.
+
 ## 2.0.2 — 2026-09-07
 
 - Lấy liên kết Embed của SlideShare trực tiếp từ trường `secretUrl` trong dữ liệu trang, không còn mở hoặc thao tác với hộp thoại Embed.

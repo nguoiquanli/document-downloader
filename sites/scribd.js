@@ -25,7 +25,7 @@
   hideTrialCta();
 
   function documentId() {
-    return location.pathname.match(/^\/document\/(\d+)/)?.[1] || null;
+    return location.pathname.match(/(?:^|\/)document\/(\d+)(?:\/|$)/)?.[1] || null;
   }
 
   function getPages(doc) {
@@ -247,8 +247,9 @@
 
     const custom = document.querySelector('[data-document-downloader-action="true"]');
     const nativeButtons = [...document.querySelectorAll(
-      '[data-e2e="multi-format-download-button"]:not([data-document-downloader-action])'
-    )];
+      'button[data-e2e="multi-format-download-button"]:not([data-document-downloader-action]),' +
+      'button[data-e2e$="multi-format-download-button"]:not([data-document-downloader-action])'
+    )].filter(button => !button.closest('[data-e2e="doc-actions-container"]'));
 
     if (custom) {
       for (const button of nativeButtons) {
@@ -282,8 +283,12 @@
   }
 
   document.addEventListener('click', event => {
-    const button = event.target.closest?.('[data-e2e="multi-format-download-button"]');
-    if (!button) return;
+    const button = event.target.closest?.(
+      'button[data-document-downloader-action="true"],' +
+      'button[data-e2e="multi-format-download-button"],' +
+      'button[data-e2e$="multi-format-download-button"]'
+    );
+    if (!button || button.closest('[data-e2e="doc-actions-container"]')) return;
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();

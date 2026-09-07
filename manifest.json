@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Document Downloader",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Tải tài liệu từ Studocu, Scribd và SlideShare.",
   "icons": {
     "16": "assets/icons/16.png",
@@ -42,7 +42,7 @@
     },
     {
       "matches": [
-        "https://*.scribd.com/document/*"
+        "https://*.scribd.com/*"
       ],
       "js": [
         "sites/scribd.js"
