@@ -419,7 +419,7 @@
           update(`Đã xử lý ${completed}/${slides.length} trang`, completed, slides.length);
         }
       };
-      await Promise.all(Array.from({ length: Math.min(4, slides.length) }, worker));
+      await Promise.all(Array.from({ length: Math.min(10, slides.length) }, worker));
       const pages = results.filter(Boolean);
       if (!pages.length) throw new Error('Không tải thành công trang nào.');
       update('Đang hoàn thiện PDF…', slides.length, slides.length);
