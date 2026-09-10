@@ -25,7 +25,7 @@
   hideTrialCta();
 
   function documentId() {
-    return location.pathname.match(/(?:^|\/)document\/(\d+)(?:\/|$)/)?.[1] || null;
+    return location.pathname.match(/(?:^|\/)(?:document|doc)\/(\d+)(?:\/|$)/)?.[1] || null;
   }
 
   function getPages(doc) {
