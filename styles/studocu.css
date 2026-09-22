@@ -202,6 +202,7 @@ body .nofilter {
 [class*="InlineBanner_inline-banner"],
 [class*="PremiumPageClarificationBanner"],
 [class*="premium-banner-wrapper"],
+[class*="premiumBannerWrapper"],
 [class*="ViewerContainer_premium"],
 [data-test-selector="modal-document-viewer-preview-message"],
 [data-test-selector="preview-banner-upgrade-first-cta"],
@@ -218,7 +219,7 @@ body .nofilter {
 /* Style native desktop/mobile Download buttons directly. React may replace the
    nodes while scrolling, so this must not depend on a class injected by JS. */
 [data-test-selector="document-viewer-download-button-topbar"],
-[class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button[aria-label="Download"] {
+[data-dd-studocu-download="true"] {
     display: inline-flex !important;
     visibility: visible !important;
     background: #4D8BF5 !important;
@@ -228,7 +229,7 @@ body .nofilter {
 }
 
 [data-test-selector="document-viewer-download-button-topbar"]:hover,
-[class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button[aria-label="Download"]:hover {
+[data-dd-studocu-download="true"]:hover {
     background: #3a7be0 !important;
     border-color: #3a7be0 !important;
 }
@@ -347,4 +348,15 @@ div[id^="google_ads_iframe"],
         font-size: 11px !important;
         padding: 6px 12px !important;
     }
+}
+
+#sh-dl-overlay .sh-dl-meta {
+    flex-shrink: 0;
+    font-size: 12px;
+    opacity: .75;
+}
+#sh-dl-overlay .sh-dl-hint {
+    align-self: center;
+    font-size: 12px;
+    opacity: .75;
 }

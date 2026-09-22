@@ -14,7 +14,7 @@ Tên, nhãn hiệu và dịch vụ Studocu, Scribd, SlideShare thuộc về các
 
 | Website | Cách xử lý | Đầu ra |
 | --- | --- | --- |
-| Studocu / Studeersnel | Nạp trang, giữ nguyên lớp chữ, hình ảnh và kích thước trang gốc | **Tệp PDF** |
+| Studocu / Studeersnel / Studocu ID | Nạp trang, giữ nguyên lớp chữ, hình ảnh và kích thước trang gốc | **Tệp PDF** |
 | Scribd | Mở bản đọc nhúng, chụp từng trang và dựng bố cục A4 | **Tệp PDF** |
 | SlideShare | Đọc `secretUrl` trong dữ liệu trang, mở bản Embed trực tiếp, tải ảnh chất lượng cao và ghép PDF | **Tệp PDF** |
 
@@ -25,7 +25,7 @@ Tên, nhãn hiệu và dịch vụ Studocu, Scribd, SlideShare thuộc về các
 - Loại bỏ menu xổ xuống khỏi nút Download của Scribd.
 - Tải ảnh SlideShare đồng thời, giữ đúng thứ tự và độ phân giải 2048.
 - Nén SlideShare thành JPEG 90% để giảm dung lượng mà vẫn giữ độ rõ.
-- Giữ nguyên bố cục trang gốc của Studocu; căn trang Scribd vào khổ A4.
+- Giữ nguyên bố cục và kích thước từng trang Studocu, kể cả tài liệu trộn trang dọc/ngang; căn trang Scribd vào khổ A4.
 - Giao diện tiếng Việt, hiển thị tiến trình và cho phép hủy.
 - Không gửi nội dung tài liệu tới máy chủ trung gian.
 
@@ -57,7 +57,7 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 
 ### Studocu
 
-1. Mở tài liệu trong trình xem Studocu hoặc Studeersnel.
+1. Mở tài liệu trong trình xem Studocu, Studeersnel hoặc Studocu ID.
 2. Bấm **Download**.
 3. Hộp thoại in tự mở sau khi quét xong.
 4. Chọn **Save as PDF**, lề `None` và tắt header/footer. Giữ tỷ lệ mặc định để Chrome dùng đúng kích thước trang của tài liệu.
@@ -87,9 +87,9 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 
 | Quyền | Mục đích |
 | --- | --- |
-| `cookies` | Xóa cookie trên các miền Studocu/Studeersnel khi trang bắt đầu nạp |
-| `tabs` | Nhận biết lần điều hướng mới tới trang Studocu/Studeersnel |
-| Host Studocu/Studeersnel | Can thiệp trình xem và tải tài nguyên |
+| `cookies` | Xóa cookie trên các miền Studocu/Studeersnel/Studocu ID khi trang bắt đầu nạp |
+| `tabs` | Nhận biết lần điều hướng mới tới trang Studocu/Studeersnel/Studocu ID |
+| Host Studocu/Studeersnel/Studocu ID | Can thiệp trình xem và tải tài nguyên |
 | Host Scribd | Chạy giao diện tải và bản đọc nhúng |
 | Host SlideShare/CDN | Đọc trang Embed và tải ảnh slide |
 
@@ -118,7 +118,7 @@ Sau đó kiểm tra `manifest.json`, nhấn **Reload** tại `chrome://extension
 
 Dự án được phát triển độc lập và có tham khảo ý tưởng, phương pháp xử lý từ:
 
-- [StudocuHack](https://github.com/danieltyukov/studocuhack) của Daniel Tyukov cho cơ chế xử lý tài liệu Studocu.
+- [StudocuHack](https://github.com/danieltyukov/studocuhack) của Daniel Tyukov cho cơ chế xử lý tài liệu Studocu. Bản 2.1.0 đã đối chiếu và chọn lọc các sửa lỗi phù hợp từ StudocuHack v2.12.0.
 - Bài viết của [Chu Minh Hiếu](https://www.facebook.com/groups/j2team.community/posts/2594998714165566/) trong cộng đồng J2TEAM Community cho phương pháp xử lý tài liệu Scribd.
 
 Xin cảm ơn các tác giả và cộng đồng đã chia sẻ kiến thức làm nền tảng tham khảo cho dự án.

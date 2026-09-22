@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.1.0 — 2026-09-22
+
+- Đối chiếu và chọn lọc các thay đổi phù hợp từ StudocuHack v2.11.0–v2.12.0.
+- Bổ sung hỗ trợ miền `studocu.id`, bao gồm content script, quyền truy cập và xử lý cookie.
+- Sửa URL text fragment của trang 10 trở đi: fragment dùng số thập phân, chỉ ảnh nền `bg*.png` dùng số hexadecimal.
+- Làm sạch fragment bằng DOM và sửa ảnh figure tương đối sang URL CDN đã ký trước khi chèn.
+- Khôi phục chính xác vị trí cuộn của cửa sổ hoặc viewer sau khi capture.
+- Tạo `@page` riêng theo kích thước thật của từng trang, hỗ trợ tài liệu có trang dọc và ngang xen kẽ.
+- Nhận diện nút Download gốc bằng nhãn đa ngôn ngữ và đánh dấu bằng thuộc tính ổn định.
+- Thêm số trang, hướng dẫn lưu PDF và phím Esc cho overlay Studocu.
+- Tạm dừng quét định kỳ khi tab bị ẩn để giảm tài nguyên.
+- Giữ nguyên tối ưu capture 75 ms và nhúng ảnh đồng thời 12 luồng của Document Downloader.
+
 ## 2.0.3 — 2026-09-07
 
 - Nhận diện nút tải Scribd bằng thuộc tính `data-e2e` chứa vai trò tải và cấu trúc DropdownMenu, không phụ thuộc vào ngôn ngữ của nhãn.

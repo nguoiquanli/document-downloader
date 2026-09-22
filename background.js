@@ -1,4 +1,4 @@
-const STUDOCU_HOSTS = ['studocu.com', 'studeersnel.nl', 'studocu.vn'];
+const STUDOCU_HOSTS = ['studocu.com', 'studeersnel.nl', 'studocu.vn', 'studocu.id'];
 const clearingTabs = new Set();
 
 function getStudocuHost(rawUrl) {

@@ -179,13 +179,13 @@
         return DOC_ASSETS + a.objectKey + '/html/bg' + pageNum.toString(16) + '.png' + a.bgParams;
     }
 
-    // pdf2htmlEX per-page text fragment: /html/{objectKey}{hex}.page, signed per
-    // page. Returns '' when this page has no signed text entry (e.g. image docs, or
-    // an image-only page). HEX page number.
+    // pdf2htmlEX per-page text fragments use DECIMAL page numbers, while only
+    // figure backgrounds use hexadecimal names (page 10 => objectKey10.page,
+    // but its background is bga.png).
     function pageTextUrl(a, pageNum) {
         const param = a.pageParams[pageNum];
         if (!param) return '';
-        return DOC_ASSETS + a.objectKey + '/html/' + a.objectKey + pageNum.toString(16) + '.page' + param;
+        return DOC_ASSETS + a.objectKey + '/html/' + a.objectKey + pageNum + '.page' + param;
     }
 
     // Studocu's own blurred preview raster. NOTE the numbering: backgrounds are
@@ -362,7 +362,7 @@
     // insert it, so a tampered CDN response can't run code in the studocu.com origin.
     function sanitizePageHtml(html) {
         const doc = new DOMParser().parseFromString(html, 'text/html');
-        doc.querySelectorAll('script, iframe, object, embed, link').forEach(el => el.remove());
+        doc.querySelectorAll('script, iframe, object, embed, link, style').forEach(el => el.remove());
         doc.querySelectorAll('*').forEach(el => {
             Array.from(el.attributes).forEach(attr => {
                 const name = attr.name.toLowerCase();
@@ -372,7 +372,7 @@
                 }
             });
         });
-        return doc.body.innerHTML;
+        return doc.body;
     }
 
     // Recover the real text layer for a blank page by fetching its .page fragment
@@ -388,7 +388,16 @@
             .then(r => (r.ok ? r.text() : null))
             .then(html => {
                 if (html && html.indexOf('<span') !== -1 && pf.querySelectorAll('span').length <= 3) {
-                    pf.innerHTML = sanitizePageHtml(html);
+                    const body = sanitizePageHtml(html);
+                    const bg = bgImageUrl(a, pageNum);
+                    body.querySelectorAll('img').forEach(img => {
+                        const src = img.getAttribute('src') || '';
+                        if (bg && /^bg[0-9a-f]+\.png$/i.test(src)) {
+                            img.setAttribute('src', bg);
+                            img.loading = 'eager';
+                        }
+                    });
+                    pf.replaceChildren(...Array.from(body.childNodes));
                     pf.style.filter = 'none';
                     pf.style.opacity = '1';
                     pf.classList.add('nofilter');
@@ -915,6 +924,7 @@
     // Runs every 2 seconds for the first 30 seconds, then every 5 seconds
     let periodicCount = 0;
     const periodicCheck = setInterval(() => {
+        if (document.hidden) return;
         removeBlur();
         ensureAllPagesLoaded();
         patchReactBlurState();
@@ -923,6 +933,7 @@
             clearInterval(periodicCheck);
             // Switch to slower interval
             setInterval(() => {
+                if (document.hidden) return;
                 removeBlur();
                 ensureAllPagesLoaded();
                 patchReactBlurState();
@@ -1052,23 +1063,47 @@
         });
     }
 
+    function getDownloadScroller() {
+        var candidates = [
+            document.getElementById('viewer-wrapper'),
+            document.getElementById('document-wrapper')
+        ];
+        for (var i = 0; i < candidates.length; i++) {
+            var el = candidates[i];
+            if (!el || el.scrollHeight <= el.clientHeight + 1) continue;
+            var overflowY = getComputedStyle(el).overflowY;
+            if (overflowY === 'auto' || overflowY === 'scroll') return el;
+        }
+        return document.scrollingElement || document.documentElement;
+    }
+
+    function saveDownloadScroll() {
+        var el = getDownloadScroller();
+        return { el: el, top: el ? el.scrollTop : 0, y: window.scrollY || 0 };
+    }
+
+    function restoreDownloadScroll(saved) {
+        if (!saved) return;
+        try { if (saved.el) saved.el.scrollTop = saved.top; } catch (e) {}
+        try { window.scrollTo(0, saved.y); } catch (e) {}
+    }
+
     // Studocu's React viewer lazy-loads page text AND unmounts pages that
     // scroll out of view. So we capture each page incrementally: scroll to it,
     // wait until it is fully rendered, then clone it immediately (before it can
     // unmount). Returns an array of cloned `.pf` elements in page order.
     function captureAllPages(onProgress) {
-        var pfs = document.querySelectorAll('.pf');
-        var container = document.getElementById('viewer-wrapper') ||
-                        document.getElementById('document-wrapper') ||
-                        document.scrollingElement || document.documentElement;
-        var savedTop = container ? container.scrollTop : 0;
+        var pfs = Array.prototype.filter.call(document.querySelectorAll('.pf'), function(pf) {
+            return !pf.closest('#sh-dl-overlay');
+        });
+        var savedScroll = saveDownloadScroll();
         var captured = [];
 
         return new Promise(function(resolve) {
             var i = 0;
             function next() {
                 if (i >= pfs.length) {
-                    if (container) container.scrollTop = savedTop;
+                    restoreDownloadScroll(savedScroll);
                     resolve(captured);
                     return;
                 }
@@ -1217,6 +1252,32 @@
         return container;
     }
 
+    function applyPageSizes(container) {
+        var pages = container.querySelectorAll('.pf');
+        var rules = [];
+        var names = {};
+        pages.forEach(function(pf) {
+            var rect = pf.getBoundingClientRect();
+            var width = Math.round(rect.width);
+            var height = Math.round(rect.height);
+            if (!(width > 0 && height > 0)) return;
+            var key = width + 'x' + height;
+            if (!names[key]) {
+                names[key] = 'dd-page-' + (rules.length + 1);
+                rules.push('@page ' + names[key] + '{size:' + width + 'px ' + height + 'px;margin:0;}');
+            }
+            pf.style.setProperty('page', names[key]);
+        });
+        var style = document.getElementById('sh-dl-page-size');
+        if (!style) {
+            style = document.createElement('style');
+            style.id = 'sh-dl-page-size';
+            document.head.appendChild(style);
+        }
+        style.textContent = rules.join('');
+        return style.textContent;
+    }
+
     // Inject the styles for the in-page download overlay + print isolation.
     // The pdf2htmlEX document stylesheet is already loaded on the live page
     // (it lives in <head>), so the cloned `.p2hv` pages are styled automatically;
@@ -1267,6 +1328,9 @@
         var titleEl = document.createElement('div');
         titleEl.className = 't';
         titleEl.textContent = title;
+        var meta = document.createElement('span');
+        meta.className = 'sh-dl-meta';
+        meta.textContent = document.querySelectorAll('.pf').length + ' trang';
         var actions = document.createElement('div');
         actions.className = 'actions';
         var printBtn = document.createElement('button');
@@ -1275,13 +1339,32 @@
         printBtn.disabled = true;
         printBtn.style.opacity = '0.5';
         printBtn.addEventListener('click', function() { window.print(); });
+        var hint = document.createElement('span');
+        hint.className = 'sh-dl-hint';
+        hint.textContent = 'Chọn “Save as PDF” trong hộp thoại in';
         var closeBtn = document.createElement('button');
         closeBtn.className = 'sh-dl-close';
         closeBtn.textContent = 'Đóng';
-        closeBtn.addEventListener('click', function() { overlay.remove(); });
+        closeBtn.title = 'Đóng (Esc)';
+        function closeOverlay() {
+            overlay.remove();
+            var sizeStyle = document.getElementById('sh-dl-page-size');
+            if (sizeStyle) sizeStyle.remove();
+            document.removeEventListener('keydown', onOverlayKey, true);
+        }
+        function onOverlayKey(event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeOverlay();
+            }
+        }
+        closeBtn.addEventListener('click', closeOverlay);
+        document.addEventListener('keydown', onOverlayKey, true);
+        actions.appendChild(hint);
         actions.appendChild(printBtn);
         actions.appendChild(closeBtn);
         bar.appendChild(titleEl);
+        bar.appendChild(meta);
         bar.appendChild(actions);
 
         var loading = document.createElement('div');
@@ -1338,6 +1421,7 @@
         }).then(function(container) {
             ui.loading.remove();
             ui.pages.appendChild(container);
+            applyPageSizes(container);
             ui.printBtn.disabled = false;
             ui.printBtn.style.opacity = '1';
             setTimeout(function() {
@@ -1352,11 +1436,36 @@
 
     var NATIVE_DOWNLOAD_SELECTOR =
         '[data-test-selector="document-viewer-download-button-topbar"], ' +
-        '[class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button[aria-label="Download"]';
+        '[data-dd-studocu-download="true"], ' +
+        '[class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button, ' +
+        'button[class*="Button"], a[class*="Button"], ' +
+        '.hidden-on-mobile button, .hidden-on-mobile a, ' +
+        '.hidden-from-tablet button, .hidden-from-tablet a';
+    var NATIVE_DOWNLOAD_WORDS =
+        /^(download|downloaden|scarica|descargar|t[eé]l[eé]charger|herunterladen|pobierz|baixar|indir|скачать|ladda ner|last ned|lataa|tải xuống|tải về)$/i;
+
+    function isNativeDownloadButton(button) {
+        if (!button || button.closest('#sh-dl-overlay')) return false;
+        if (button.matches('[data-test-selector="document-viewer-download-button-topbar"]')) return true;
+        return NATIVE_DOWNLOAD_WORDS.test((button.textContent || '').trim());
+    }
 
     function nativeDownloadButton(target) {
-        return target && target.closest ? target.closest(NATIVE_DOWNLOAD_SELECTOR) : null;
+        if (!target || !target.closest) return null;
+        var button = target.closest(NATIVE_DOWNLOAD_SELECTOR);
+        return isNativeDownloadButton(button) ? button : null;
     }
+
+    function refreshNativeDownloadButtons() {
+        document.querySelectorAll(NATIVE_DOWNLOAD_SELECTOR).forEach(function(button) {
+            if (isNativeDownloadButton(button)) button.dataset.ddStudocuDownload = 'true';
+        });
+    }
+
+    refreshNativeDownloadButtons();
+    new MutationObserver(function() {
+        refreshNativeDownloadButtons();
+    }).observe(document.documentElement, { childList: true, subtree: true });
 
     // Capture-phase delegation - fires before React handlers.
     document.addEventListener('click', function(e) {
