@@ -23,6 +23,7 @@ Tên, nhãn hiệu và dịch vụ Studocu, Scribd, SlideShare thuộc về các
 - Thay nút tải gốc bằng luồng tải phù hợp cho từng website, đồng thời giữ nguyên nhãn theo ngôn ngữ hiện tại của trang.
 - Loại bỏ nút “Download free for 30 days” trên thanh trên cùng của Scribd và SlideShare.
 - Loại bỏ menu xổ xuống khỏi nút Download của Scribd.
+- Ẩn đúng hộp đăng nhập chống bot không thể đóng của Studocu và khôi phục cuộn trang, không ảnh hưởng hộp đăng nhập do người dùng mở.
 - Tải ảnh SlideShare đồng thời, giữ đúng thứ tự và độ phân giải 2048.
 - Nén SlideShare thành JPEG 90% để giảm dung lượng mà vẫn giữ độ rõ.
 - Giữ nguyên bố cục và kích thước từng trang Studocu, kể cả tài liệu trộn trang dọc/ngang; căn trang Scribd vào khổ A4.
@@ -118,7 +119,7 @@ Sau đó kiểm tra `manifest.json`, nhấn **Reload** tại `chrome://extension
 
 Dự án được phát triển độc lập và có tham khảo ý tưởng, phương pháp xử lý từ:
 
-- [StudocuHack](https://github.com/danieltyukov/studocuhack) của Daniel Tyukov cho cơ chế xử lý tài liệu Studocu. Bản 2.1.0 đã đối chiếu và chọn lọc các sửa lỗi phù hợp từ StudocuHack v2.12.0.
+- [StudocuHack](https://github.com/danieltyukov/studocuhack) của Daniel Tyukov cho cơ chế xử lý tài liệu Studocu. Bản 2.1.1 đã đối chiếu và chọn lọc các sửa lỗi phù hợp đến StudocuHack v2.12.1.
 - Bài viết của [Chu Minh Hiếu](https://www.facebook.com/groups/j2team.community/posts/2594998714165566/) trong cộng đồng J2TEAM Community cho phương pháp xử lý tài liệu Scribd.
 
 Xin cảm ơn các tác giả và cộng đồng đã chia sẻ kiến thức làm nền tảng tham khảo cho dự án.

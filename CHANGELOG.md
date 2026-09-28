@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.1 — 2026-09-28
+
+- Đối chiếu StudocuHack v2.12.1 và tích hợp sửa lỗi phù hợp cho trình xem Studocu.
+- Ẩn hộp thoại đăng nhập chống bot không thể đóng khi nó che tài liệu đã tải.
+- Gỡ khóa cuộn trên `html` và `body` do hộp thoại này tạo ra, gồm cả trường hợp Android.
+- Chỉ tác động tới `AuthWall` không có lớp `hideable`; các hộp đăng nhập do người dùng chủ động mở vẫn hoạt động.
+- Không tích hợp website và GitHub Pages mới của StudocuHack vì không thuộc chức năng extension.
+
 ## 2.1.0 — 2026-09-22
 
 - Đối chiếu và chọn lọc các thay đổi phù hợp từ StudocuHack v2.11.0–v2.12.0.

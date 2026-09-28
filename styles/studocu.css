@@ -102,6 +102,26 @@ body .nofilter {
     visibility: hidden !important;
 }
 
+/* ========== Sign-in wall for readers flagged as bots ========== */
+/* Studocu can mount a non-dismissible AuthWall over a document and lock
+   scrolling. Only hide the open AuthWall dialog without the `hideable`
+   class, so sign-in dialogs opened by the reader remain usable. */
+div:has(> dialog[open][class*="AuthWall"]:not([class*="hideable"])) {
+    display: none !important;
+}
+
+html:has(dialog[open][class*="AuthWall"]:not([class*="hideable"])) {
+    overflow: visible !important;
+    padding-right: 0 !important;
+    height: auto !important;
+}
+
+html:has(dialog[open][class*="AuthWall"]:not([class*="hideable"])) body {
+    position: static !important;
+    top: auto !important;
+    overflow: visible !important;
+}
+
 /* ========== Download button styles ========== */
 .download-button-2, .github-button {
     background: inherit;
