@@ -1,5 +1,10 @@
 # Changelog
 
+## Userscript 2.1.8 — 2026-11-22
+
+- Khôi phục nút tải nổi SlideShare theo cách đã hoạt động trước đây, chỉ khi tài liệu không có nút Download gốc; nếu nút gốc xuất hiện sau đó thì thay đúng vị trí của nó.
+- Đặt nút xóa cookie Studocu bên ngoài thanh công cụ để không gây đổi bố cục trên điện thoại; hiển thị tiến trình, giới hạn thời gian chờ API và hướng dẫn xóa thủ công khi ChromeXt không xóa được.
+
 ## Userscript 2.1.7 — 2026-11-22
 
 - Sửa lịch gắn nút cookie Studocu và nút Download SlideShare: DOM thay đổi liên tục không còn trì hoãn lần kiểm tra vô thời hạn.

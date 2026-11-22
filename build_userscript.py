@@ -10,7 +10,7 @@ OUT = ROOT / "document-downloader.user.js"
 HEADER = """// ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.7
+// @version      2.1.8
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*
@@ -53,74 +53,101 @@ HEADER = """// ==UserScript==
   // Only run on explicit request. Automatically deleting cookies on every URL
   // update made ChromeXt reload repeatedly (and could invalidate signed URLs
   // while the document was being assembled for printing).
-  async function clearStudocuCookies() {
+  function cookieOperation(promise, action) {
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${action} quá thời gian chờ. ChromeXt không phản hồi; hãy xóa cookie thủ công.`)), 8000); })
+    ]).finally(() => clearTimeout(timer));
+  }
+
+  async function clearStudocuCookies(button) {
+    if (button?.disabled) return;
+    if (button) { button.disabled = true; button.textContent = 'Đang xóa…'; }
     try {
       const api = typeof GM_cookie !== 'undefined' && typeof GM_cookie.list === 'function'
         && typeof GM_cookie.delete === 'function';
-      const cookies = api ? await GM_cookie.list({ url: location.href }) : [];
+      if (!api) throw new Error('ChromeXt không cung cấp GM_cookie. Hãy xóa cookie trong cài đặt trình duyệt.');
+      const cookies = await cookieOperation(GM_cookie.list({ url: location.href }), 'Liệt kê cookie');
+      if (!Array.isArray(cookies)) throw new Error('ChromeXt không trả về danh sách cookie. Hãy xóa thủ công.');
+      if (!cookies.length) {
+        if (document.cookie.trim()) throw new Error('ChromeXt không liệt kê được cookie đang hiện trên trang. Hãy xóa bằng cài đặt trình duyệt.');
+        if (button) button.textContent = 'Không có cookie';
+        alert('Không tìm thấy cookie của trang đang mở.');
+        return;
+      }
       for (const cookie of cookies) {
         // CDP matches an exact domain/path OR a URL. Passing both can leave
         // cookies untouched when the current URL and the cookie domain differ.
         const details = { name: cookie.name, domain: cookie.domain, path: cookie.path || '/' };
         if (cookie.partitionKey) details.partitionKey = cookie.partitionKey;
-        try { await GM_cookie.delete(details); }
+        try { await cookieOperation(GM_cookie.delete(details), 'Xóa cookie'); }
         catch (error) { console.warn('Document Downloader: cookie domain/path deletion failed', error); }
       }
-      const remaining = api ? await GM_cookie.list({ url: location.href }) : [];
+      const remaining = await cookieOperation(GM_cookie.list({ url: location.href }), 'Kiểm tra cookie');
       if (remaining.length) {
         for (const cookie of remaining) {
           const details = { name: cookie.name, url: location.href };
           if (cookie.partitionKey) details.partitionKey = cookie.partitionKey;
-          try { await GM_cookie.delete(details); }
+          try { await cookieOperation(GM_cookie.delete(details), 'Xóa cookie'); }
           catch (error) { console.warn('Document Downloader: cookie URL deletion failed', error); }
         }
       }
-      // document.cookie can remove non-HttpOnly cookies when ChromeXt's CDP
-      // bridge does not support deletion. HttpOnly requires GM_cookie or the
-      // browser's site-data settings.
-      const visible = document.cookie.split(';').map(part => part.trim().split('=')[0]).filter(Boolean);
-      const paths = ['/'];
-      const parts = location.pathname.split('/').filter(Boolean);
-      for (let i = 1; i <= parts.length; i++) paths.push('/' + parts.slice(0, i).join('/') + '/');
-      const domains = [''];
-      const hostParts = location.hostname.split('.');
-      for (let i = 0; i < hostParts.length - 1; i++) domains.push(hostParts.slice(i).join('.'));
-      for (const name of visible) for (const path of paths) for (const domain of domains) {
-        document.cookie = `${name}=; Max-Age=0; Path=${path}${domain ? '; Domain=' + domain : ''}`;
-      }
-      const stillPresent = api ? await GM_cookie.list({ url: location.href }) : [];
+      const stillPresent = await cookieOperation(GM_cookie.list({ url: location.href }), 'Xác nhận xóa cookie');
       if (stillPresent.length) {
         throw new Error(`Còn ${stillPresent.length} cookie; hãy xóa bằng cài đặt trình duyệt.`);
       }
-      if (document.cookie) throw new Error('Vẫn còn cookie của trang; hãy xóa bằng cài đặt trình duyệt.');
-      if (!api && !visible.length) throw new Error('ChromeXt GM_cookie không khả dụng để kiểm tra hoặc xóa cookie HttpOnly.');
-      if (api && !cookies.length && !visible.length) { alert('Không tìm thấy cookie của trang này.'); return; }
+      if (button) button.textContent = 'Đã xóa';
       location.reload();
     } catch (error) {
       console.warn('Document Downloader: cookie cleanup failed', error);
+      if (button) { button.textContent = 'Xóa thủ công'; button.title = error.message || String(error); }
       alert('Không xóa được cookie: ' + (error.message || error));
+    } finally {
+      if (button) button.disabled = false;
     }
   }
 
   function installStudocuCookieButton() {
     const selector = '[data-test-selector="document-viewer-download-button-topbar"], [data-dd-studocu-download="true"], [class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button';
     const downloadWords = /^(download|downloaden|scarica|descargar|t[eé]l[eé]charger|herunterladen|pobierz|baixar|indir|скачать|ladda ner|last ned|lataa|tải xuống|tải về)$/i;
+    let button;
+    let anchor;
+    const position = () => {
+      if (!button) return;
+      if (!anchor?.isConnected) { button.hidden = true; return; }
+      const rect = anchor.getBoundingClientRect();
+      const visible = rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
+      button.hidden = !visible;
+      if (!visible) return;
+      const width = button.offsetWidth || 102;
+      const left = rect.left >= width + 12 ? rect.left - width - 6 : rect.right + 6;
+      button.style.left = `${Math.max(6, Math.min(innerWidth - width - 6, left))}px`;
+      button.style.top = `${Math.max(6, Math.min(innerHeight - rect.height, rect.top))}px`;
+    };
     const mount = () => {
-      for (const download of document.querySelectorAll(selector)) {
-        if (!download.matches('[data-test-selector="document-viewer-download-button-topbar"], [data-dd-studocu-download="true"]')
-            && !downloadWords.test((download.textContent || '').trim())) continue;
-        if (download.closest('#sh-dl-overlay') || download.nextElementSibling?.matches('[data-dd-cookie-clear]')) continue;
-        const button = document.createElement('button');
+      const candidates = [...document.querySelectorAll(selector)].filter(download =>
+        !download.closest('#sh-dl-overlay') &&
+        (download.matches('[data-test-selector="document-viewer-download-button-topbar"], [data-dd-studocu-download="true"]')
+          || downloadWords.test((download.textContent || '').trim()))
+      );
+      anchor = candidates.find(download => download.getBoundingClientRect().width > 0) || candidates[0];
+      if (!anchor || !document.body) { if (button) button.hidden = true; return; }
+      if (!button) {
+        button = document.createElement('button');
         button.type = 'button';
         button.dataset.ddCookieClear = 'true';
         button.textContent = 'Xóa cookie';
         button.setAttribute('aria-label', 'Xóa cookie Studocu');
+        for (const type of ['pointerdown', 'mousedown', 'touchstart', 'touchend'])
+          button.addEventListener(type, event => event.stopPropagation());
         button.addEventListener('click', event => {
           event.preventDefault(); event.stopImmediatePropagation();
-          clearStudocuCookies();
+          clearStudocuCookies(button);
         });
-        download.after(button);
+        document.body.appendChild(button);
       }
+      position();
     };
     mount();
     let scheduled = false;
@@ -131,6 +158,9 @@ HEADER = """// ==UserScript==
     })
       .observe(document.documentElement, { childList: true, subtree: true,
         attributes: true, attributeFilter: ['data-dd-studocu-download', 'data-test-selector'] });
+    window.addEventListener('scroll', position, { passive: true, capture: true });
+    window.addEventListener('resize', position, { passive: true });
+    window.visualViewport?.addEventListener('resize', position, { passive: true });
   }
 
   // Fetch-like response used by Studocu's original .text() and .blob() calls.
@@ -233,7 +263,7 @@ HEADER = """// ==UserScript==
     if (isStudocu) {
       if (window !== window.top) return;
       if (typeof GM_registerMenuCommand === 'function') {
-        try { GM_registerMenuCommand('Xóa cookie Studocu và tải lại', clearStudocuCookies); }
+        try { GM_registerMenuCommand('Xóa cookie Studocu và tải lại', () => clearStudocuCookies()); }
         catch (error) { console.warn('Document Downloader: menu command failed', error); }
       }
       installCss(STUDOCU_CSS);
@@ -291,6 +321,42 @@ def build():
     script = script.replace('__STUDOCU_JS__', studocu)
     script = script.replace('__SCRIBD_JS__', (ROOT / 'sites/scribd.js').read_text())
     slide = (ROOT / 'sites/slideshare.js').read_text()
+    # The original userscript showed a fixed fallback on documents without a
+    # native Download control. Keep it only in ChromeXt; the extension uses
+    # its site's toolbar button instead.
+    existing = '''    if (document.getElementById(ID.button)) {
+      const current = document.getElementById(ID.button);
+      const target = toolbarTarget();
+      if (target && !current.getClientRects().length && !target.contains(current))
+        target.appendChild(current.closest('[data-script-download="true"]') || current);
+      for (const button of nativeButtons) (button.closest('.download-button') || button).remove();
+      return;
+    }
+'''
+    fallback_existing = '''    if (document.getElementById(ID.button)) {
+      const current = document.getElementById(ID.button);
+      if (nativeButtons.length && current.classList.contains('ss-floating-download')) {
+        (current.closest('[data-script-download="true"]') || current).remove();
+      } else {
+        const target = toolbarTarget();
+        if (target && !current.getClientRects().length && !target.contains(current))
+          target.appendChild(current.closest('[data-script-download="true"]') || current);
+        for (const button of nativeButtons) (button.closest('.download-button') || button).remove();
+        return;
+      }
+    }
+'''
+    assert slide.count(existing) == 1
+    slide = slide.replace(existing, fallback_existing)
+    target = 'const target = nativeWrapper?.parentElement || toolbarTarget();'
+    assert slide.count(target) == 1
+    slide = slide.replace(target, 'const target = nativeButtons.length ? (nativeWrapper?.parentElement || toolbarTarget()) : document.body;')
+    wrapper = "wrapper.className = nativeWrapper?.className || 'download-button download-button-guest Lil-cW_root';"
+    assert slide.count(wrapper) == 1
+    slide = slide.replace(wrapper, "wrapper.className = target === document.body ? 'ss-floating-holder' : (nativeWrapper?.className || 'download-button download-button-guest Lil-cW_root');")
+    click = '    button.onclick = downloadPdf;'
+    assert slide.count(click) == 1
+    slide = slide.replace(click, "    if (target === document.body && !nativeButtons.length) { button.className = 'ss-floating-download'; button.textContent = 'Tải PDF'; }\n" + click)
     # ChromeXt may not inject this userscript into same-origin embed iframes.
     # Keep the iframe DOM path in the userscript without altering the extension.
     direct = '''  function requestEmbedSlides(frame) {

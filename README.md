@@ -46,11 +46,11 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 2. Cho phép các quyền `GM_cookie`, `GM_xmlhttpRequest` và truy cập các miền Studocu, Scribd, SlideShare được hỏi khi cài.
 3. Truy cập tài liệu rồi dùng nút **Download** trên trang như khi dùng extension.
 
-ChromeXt lưu một bản sao của userscript khi cài, không tự lấy mã mới từ repo. Sau mỗi lần cập nhật, mở lại liên kết raw ở bước 1 và xác nhận cài đè, rồi tải lại trang tài liệu. Kiểm tra phần đầu script đã ghi phiên bản `2.1.7`.
+ChromeXt lưu một bản sao của userscript khi cài, không tự lấy mã mới từ repo. Sau mỗi lần cập nhật, mở lại liên kết raw ở bước 1 và xác nhận cài đè, rồi tải lại trang tài liệu. Kiểm tra phần đầu script đã ghi phiên bản `2.1.8`.
 
 Script chứa logic và CSS của cả ba website trong một file; không cần cài extension cùng lúc. ChromeXt cần `@grant frames` để đọc bản Embed SlideShare trong iframe. Ảnh SlideShare và tài nguyên Studocu được tải bằng `GM_xmlhttpRequest` ngay trong trình duyệt, không qua máy chủ trung gian.
 
-Trên Studocu, script không tự xóa cookie khi mở tài liệu. Nếu cần bắt đầu phiên xem mới, bấm **Xóa cookie** bên cạnh nút **Download**, hoặc dùng lệnh **Xóa cookie Studocu và tải lại** trong menu ChromeXt. Script chỉ tải lại sau khi xác nhận cookie đã được xóa. Nếu ChromeXt không xóa được cookie HttpOnly, thông báo sẽ hướng dẫn xóa dữ liệu trang trong cài đặt trình duyệt. API này chỉ kiểm tra cookie của URL đang xem, không quét toàn bộ cookie như quyền `cookies` của extension.
+Trên Studocu, script không tự xóa cookie khi mở tài liệu. Nếu cần bắt đầu phiên xem mới, bấm **Xóa cookie** ở cạnh nút **Download**, hoặc dùng lệnh trong menu ChromeXt. Nút nổi theo vị trí Download mà không thay đổi bố cục thanh công cụ. Trong khi xử lý, nút báo **Đang xóa…**; nếu ChromeXt không phản hồi hoặc vẫn còn cookie, nút báo **Xóa thủ công** và hướng dẫn xóa dữ liệu trang trong cài đặt trình duyệt. Script chỉ tải lại sau khi kiểm tra xóa thành công. API này chỉ kiểm tra cookie của URL đang xem, không quét toàn bộ cookie như quyền `cookies` của extension.
 
 Scribd và Studocu dùng hộp thoại **In / Lưu thành PDF** của trình duyệt Android. Nếu trình duyệt không cung cấp tùy chọn lưu PDF hoặc không cho in iframe, tính năng này phụ thuộc khả năng của trình duyệt. SlideShare dựng PDF rồi lưu bằng nút trong giao diện của script.
 
