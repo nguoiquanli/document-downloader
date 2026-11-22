@@ -467,9 +467,11 @@
     if (!target) return;
     const neighboringButton = target.querySelector('button[data-cy="embed-button"],button[data-cy="share-button"]');
     const desktopToolbar = !nativeWrapper && !!neighboringButton;
-    const wrapper = document.createElement('div');
-    wrapper.className = nativeWrapper?.className || 'download-button download-button-guest Lil-cW_root';
-    wrapper.dataset.scriptDownload = 'true';
+    const wrapper = desktopToolbar ? null : document.createElement('div');
+    if (wrapper) {
+      wrapper.className = nativeWrapper?.className || 'download-button download-button-guest Lil-cW_root';
+      wrapper.dataset.scriptDownload = 'true';
+    }
 
     const button = document.createElement('button');
     button.id = ID.button;
@@ -482,10 +484,22 @@
     const label = button.querySelector('.ellipsis, [class*="ellipsis"]');
     if (label) label.classList.add('ss-download-label');
     if (desktopToolbar) {
-      button.innerHTML = `<span role="img" aria-label="download icon" class="icon J9mFQG_icon J9mFQG_mask" style="--icon:url(/images/next/svg/download.svg)"></span><span class="ss-download-label">Download</span>`;
+      button.style.minWidth = '0';
+      button.innerHTML = neighboringButton.innerHTML;
+      const icon = button.querySelector('[role="img"]');
+      if (icon) {
+        icon.setAttribute('aria-label', 'download icon');
+        icon.style.setProperty('--icon', 'url(/images/next/svg/download.svg)');
+      }
+      const text = button.querySelector('.ellipsis');
+      if (text) { text.textContent = 'Download'; text.classList.add('ss-download-label'); }
+      else button.insertAdjacentHTML('beforeend', '<span class="ss-download-label">Download</span>');
     }
-    button.onclick = downloadPdf; wrapper.appendChild(button);
-    if (nativeWrapper) nativeWrapper.replaceWith(wrapper); else target.appendChild(wrapper);
+    button.onclick = downloadPdf;
+    if (wrapper) wrapper.appendChild(button);
+    if (nativeWrapper) nativeWrapper.replaceWith(wrapper);
+    else if (template) template.replaceWith(wrapper || button);
+    else target.appendChild(wrapper || button);
     for (const extra of nativeButtons.slice(1)) (extra.closest('.download-button') || extra).remove();
   }
 

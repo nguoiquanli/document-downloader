@@ -10,7 +10,7 @@ OUT = ROOT / "document-downloader.user.js"
 HEADER = """// ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.5
+// @version      2.1.6
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*

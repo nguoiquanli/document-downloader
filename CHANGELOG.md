@@ -1,5 +1,9 @@
 # Changelog
 
+## Userscript 2.1.6 — 2026-11-22
+
+- Ở thanh công cụ SlideShare máy tính, chèn nút trực tiếp cạnh các nút gốc bằng mẫu HTML và lớp của nút cùng hàng; tránh lớp bọc guest có thể ẩn nút.
+
 ## Userscript 2.1.5 — 2026-11-22
 
 - Chờ phần tử gốc trước khi khởi tạo trên ChromeXt; nút xóa cookie được gắn độc lập trước module Studocu và theo dõi cả khi nút Download đổi thuộc tính.
