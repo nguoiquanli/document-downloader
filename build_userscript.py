@@ -10,7 +10,7 @@ OUT = ROOT / "document-downloader.user.js"
 HEADER = """// ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.6
+// @version      2.1.7
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*
@@ -26,8 +26,6 @@ HEADER = """// ==UserScript==
 // @grant        frames
 // @connect      doc-assets.studocu.com
 // @connect      image.slidesharecdn.com
-// @updateURL    https://raw.githubusercontent.com/nguoiquanli/document-downloader/main/document-downloader.user.js
-// @downloadURL  https://raw.githubusercontent.com/nguoiquanli/document-downloader/main/document-downloader.user.js
 // ==/UserScript==
 
 /* Generated from sites/*.js and styles/*.css. Edit those sources and rebuild. */
@@ -125,8 +123,12 @@ HEADER = """// ==UserScript==
       }
     };
     mount();
-    let pending;
-    new MutationObserver(() => { clearTimeout(pending); pending = setTimeout(mount, 100); })
+    let scheduled = false;
+    new MutationObserver(() => {
+      if (scheduled) return;
+      scheduled = true;
+      setTimeout(() => { scheduled = false; mount(); }, 100);
+    })
       .observe(document.documentElement, { childList: true, subtree: true,
         attributes: true, attributeFilter: ['data-dd-studocu-download', 'data-test-selector'] });
   }

@@ -503,6 +503,10 @@
     for (const extra of nativeButtons.slice(1)) (extra.closest('.download-button') || extra).remove();
   }
 
-  mount(); let timer;
-  new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(mount, 150); }).observe(document.documentElement, { childList: true, subtree: true });
+  mount(); let scheduled = false;
+  new MutationObserver(() => {
+    if (scheduled) return;
+    scheduled = true;
+    setTimeout(() => { scheduled = false; mount(); }, 150);
+  }).observe(document.documentElement, { childList: true, subtree: true });
 })();

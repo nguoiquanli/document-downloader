@@ -1,5 +1,10 @@
 # Changelog
 
+## Userscript 2.1.7 — 2026-11-22
+
+- Sửa lịch gắn nút cookie Studocu và nút Download SlideShare: DOM thay đổi liên tục không còn trì hoãn lần kiểm tra vô thời hạn.
+- Làm rõ ChromeXt cần cài đè userscript để nhận mã mới; metadata `@updateURL` không tạo cập nhật tự động trên ChromeXt.
+
 ## Userscript 2.1.6 — 2026-11-22
 
 - Ở thanh công cụ SlideShare máy tính, chèn nút trực tiếp cạnh các nút gốc bằng mẫu HTML và lớp của nút cùng hàng; tránh lớp bọc guest có thể ẩn nút.

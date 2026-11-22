@@ -46,7 +46,7 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 2. Cho phép các quyền `GM_cookie`, `GM_xmlhttpRequest` và truy cập các miền Studocu, Scribd, SlideShare được hỏi khi cài.
 3. Truy cập tài liệu rồi dùng nút **Download** trên trang như khi dùng extension.
 
-Khi cập nhật ChromeXt, kiểm tra userscript đã lên phiên bản `2.1.6`; nếu vẫn là bản cũ, mở lại liên kết raw ở bước 1 để cài đè.
+ChromeXt lưu một bản sao của userscript khi cài, không tự lấy mã mới từ repo. Sau mỗi lần cập nhật, mở lại liên kết raw ở bước 1 và xác nhận cài đè, rồi tải lại trang tài liệu. Kiểm tra phần đầu script đã ghi phiên bản `2.1.7`.
 
 Script chứa logic và CSS của cả ba website trong một file; không cần cài extension cùng lúc. ChromeXt cần `@grant frames` để đọc bản Embed SlideShare trong iframe. Ảnh SlideShare và tài nguyên Studocu được tải bằng `GM_xmlhttpRequest` ngay trong trình duyệt, không qua máy chủ trung gian.
 
