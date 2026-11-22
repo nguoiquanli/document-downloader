@@ -10,7 +10,7 @@ OUT = ROOT / "document-downloader.user.js"
 HEADER = """// ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.8
+// @version      2.1.9
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*
@@ -53,12 +53,35 @@ HEADER = """// ==UserScript==
   // Only run on explicit request. Automatically deleting cookies on every URL
   // update made ChromeXt reload repeatedly (and could invalidate signed URLs
   // while the document was being assembled for printing).
-  function cookieOperation(promise, action) {
+  function cookieOperation(promise, action, timeout = 4000) {
     let timer;
     return Promise.race([
       promise,
-      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${action} quá thời gian chờ. ChromeXt không phản hồi; hãy xóa cookie thủ công.`)), 8000); })
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${action} quá thời gian chờ`)), timeout); })
     ]).finally(() => clearTimeout(timer));
+  }
+
+  function clearVisibleStudocuCookies() {
+    const before = document.cookie.split(';').map(part => part.trim().split('=')[0]).filter(Boolean);
+    if (!before.length) return { before: 0, remaining: 0 };
+    const paths = new Set(['/']);
+    let path = '';
+    for (const segment of location.pathname.split('/').filter(Boolean)) {
+      path += '/' + segment;
+      paths.add(path);
+      paths.add(path + '/');
+    }
+    const hostParts = location.hostname.split('.');
+    const domains = [''];
+    for (let i = 0; i <= hostParts.length - 2; i++)
+      domains.push(hostParts.slice(i).join('.'));
+    for (const name of new Set(before)) for (const cookiePath of paths) for (const domain of domains) {
+      const removal = `${name}=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=${cookiePath}${domain ? '; Domain=' + domain : ''}`;
+      document.cookie = removal;
+      document.cookie = removal + '; Secure';
+      document.cookie = removal + '; Secure; SameSite=None; Partitioned';
+    }
+    return { before: before.length, remaining: document.cookie.split(';').filter(part => part.trim()).length };
   }
 
   async function clearStudocuCookies(button) {
@@ -67,38 +90,45 @@ HEADER = """// ==UserScript==
     try {
       const api = typeof GM_cookie !== 'undefined' && typeof GM_cookie.list === 'function'
         && typeof GM_cookie.delete === 'function';
-      if (!api) throw new Error('ChromeXt không cung cấp GM_cookie. Hãy xóa cookie trong cài đặt trình duyệt.');
-      const cookies = await cookieOperation(GM_cookie.list({ url: location.href }), 'Liệt kê cookie');
-      if (!Array.isArray(cookies)) throw new Error('ChromeXt không trả về danh sách cookie. Hãy xóa thủ công.');
-      if (!cookies.length) {
-        if (document.cookie.trim()) throw new Error('ChromeXt không liệt kê được cookie đang hiện trên trang. Hãy xóa bằng cài đặt trình duyệt.');
-        if (button) button.textContent = 'Không có cookie';
-        alert('Không tìm thấy cookie của trang đang mở.');
-        return;
-      }
-      for (const cookie of cookies) {
-        // CDP matches an exact domain/path OR a URL. Passing both can leave
-        // cookies untouched when the current URL and the cookie domain differ.
-        const details = { name: cookie.name, domain: cookie.domain, path: cookie.path || '/' };
-        if (cookie.partitionKey) details.partitionKey = cookie.partitionKey;
-        try { await cookieOperation(GM_cookie.delete(details), 'Xóa cookie'); }
-        catch (error) { console.warn('Document Downloader: cookie domain/path deletion failed', error); }
-      }
-      const remaining = await cookieOperation(GM_cookie.list({ url: location.href }), 'Kiểm tra cookie');
-      if (remaining.length) {
-        for (const cookie of remaining) {
-          const details = { name: cookie.name, url: location.href };
-          if (cookie.partitionKey) details.partitionKey = cookie.partitionKey;
-          try { await cookieOperation(GM_cookie.delete(details), 'Xóa cookie'); }
-          catch (error) { console.warn('Document Downloader: cookie URL deletion failed', error); }
+      let apiError = null;
+      let apiUnresponsive = false;
+      try { apiUnresponsive = sessionStorage.getItem('dd-cookie-api-unresponsive') === 'true'; }
+      catch (_) { /* Storage can be disabled by the browser. */ }
+      if (api && !apiUnresponsive) {
+        try {
+          const cookies = await cookieOperation(GM_cookie.list({ url: location.href }), 'Liệt kê cookie', 2500);
+          if (!Array.isArray(cookies)) throw new Error('ChromeXt không trả về danh sách cookie');
+          for (const cookie of cookies) {
+            const details = { name: cookie.name, domain: cookie.domain, path: cookie.path || '/' };
+            if (cookie.partitionKey) details.partitionKey = cookie.partitionKey;
+            await cookieOperation(GM_cookie.delete(details), 'Xóa cookie');
+          }
+          const remaining = await cookieOperation(GM_cookie.list({ url: location.href }), 'Kiểm tra cookie', 2500);
+          if (remaining.length) throw new Error(`ChromeXt còn ${remaining.length} cookie`);
+          if (document.cookie.trim()) throw new Error('ChromeXt vẫn để lại cookie JavaScript đọc được');
+          if (!cookies.length && !document.cookie.trim()) {
+            if (button) button.textContent = 'Không có cookie';
+            alert('Không tìm thấy cookie của trang này.');
+            return;
+          }
+          if (button) button.textContent = 'Đã xóa';
+          location.reload();
+          return;
+        } catch (error) {
+          apiError = error;
+          console.warn('Document Downloader: ChromeXt cookie API failed', error);
+          if (/quá thời gian chờ/.test(error.message || ''))
+            try { sessionStorage.setItem('dd-cookie-api-unresponsive', 'true'); } catch (_) { /* optional */ }
         }
       }
-      const stillPresent = await cookieOperation(GM_cookie.list({ url: location.href }), 'Xác nhận xóa cookie');
-      if (stillPresent.length) {
-        throw new Error(`Còn ${stillPresent.length} cookie; hãy xóa bằng cài đặt trình duyệt.`);
-      }
-      if (button) button.textContent = 'Đã xóa';
-      location.reload();
+      const visible = clearVisibleStudocuCookies();
+      if (button) button.textContent = 'Xóa thủ công';
+      const note = visible.before
+        ? `Đã xóa ${Math.max(0, visible.before - visible.remaining)}/${visible.before} cookie JavaScript có thể đọc. `
+        : 'Không có cookie nào JavaScript có thể đọc. ';
+      alert(note + (visible.remaining ? 'Vẫn còn cookie thường. ' : '') +
+        'ChromeXt không xác nhận được cookie HttpOnly; hãy xóa dữ liệu trang trong cài đặt trình duyệt.' +
+        (apiError ? ` (${apiError.message || apiError})` : ''));
     } catch (error) {
       console.warn('Document Downloader: cookie cleanup failed', error);
       if (button) { button.textContent = 'Xóa thủ công'; button.title = error.message || String(error); }

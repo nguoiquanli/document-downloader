@@ -1,5 +1,10 @@
 # Changelog
 
+## Userscript 2.1.9 — 2026-11-23
+
+- Nếu `GM_cookie.list` của ChromeXt không phản hồi, xóa cookie thường bằng `document.cookie`, báo số lượng đã xóa và hướng dẫn xóa dữ liệu trang để xử lý cookie HttpOnly.
+- Ghi nhớ API cookie không phản hồi trong phiên hiện tại để lần bấm tiếp theo không chờ lại; chỉ tự tải lại khi ChromeXt xác nhận toàn bộ cookie đã được xóa.
+
 ## Userscript 2.1.8 — 2026-11-22
 
 - Khôi phục nút tải nổi SlideShare theo cách đã hoạt động trước đây, chỉ khi tài liệu không có nút Download gốc; nếu nút gốc xuất hiện sau đó thì thay đúng vị trí của nó.
