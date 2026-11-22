@@ -46,7 +46,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           TAG="v${VERSION}"
-          awk -v heading="## ${VERSION}" 'index($0, heading) == 1 {flag=1; next} /^## / {flag=0} flag' CHANGELOG.md > release-notes.md
+          printf 'Userscript: [link](https://raw.githubusercontent.com/nguoiquanli/document-downloader/main/document-downloader.user.js)\n' > release-notes.md
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "document-downloader-v${VERSION}.zip" --clobber
             gh release edit "$TAG" --title "Document Downloader ${TAG}" --notes-file release-notes.md

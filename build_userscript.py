@@ -10,7 +10,7 @@ OUT = ROOT / "document-downloader.user.js"
 HEADER = """// ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.1
+// @version      2.1.2
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*
@@ -22,6 +22,7 @@ HEADER = """// ==UserScript==
 // @grant        GM_cookie
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
+// @grant        GM_registerMenuCommand
 // @grant        frames
 // @connect      doc-assets.studocu.com
 // @connect      image.slidesharecdn.com
@@ -47,63 +48,75 @@ HEADER = """// ==UserScript==
     }
   }
 
-  // ChromeXt implements GM_cookie through Chrome DevTools Protocol. Its list
-  // accepts a URL, so only cookies applicable to this document are removed.
-  // ChromeXt's cookie API does not have the same domain-wide enumeration as
-  // chrome.cookies.getAll({domain}); this difference is intentional here.
-  async function clearStudocuCookiesOnce() {
-    if (window !== window.top) return false;
-    const key = 'document-downloader:cookie-reload';
-    const target = location.href.split('#', 1)[0];
+  // Only run on explicit request. Automatically deleting cookies on every URL
+  // update made ChromeXt reload repeatedly (and could invalidate signed URLs
+  // while the document was being assembled for printing).
+  async function clearStudocuCookies() {
     try {
-      const marker = JSON.parse(sessionStorage.getItem(key) || 'null');
-      if (marker?.url === target && Date.now() - marker.time < 30000) {
-        sessionStorage.removeItem(key);
-        return false;
-      }
-      sessionStorage.removeItem(key);
       if (typeof GM_cookie === 'undefined' || typeof GM_cookie.list !== 'function') {
-        console.warn('Document Downloader: ChromeXt GM_cookie is unavailable; clear Studocu cookies manually if necessary.');
-        return false;
+        throw new Error('ChromeXt GM_cookie không khả dụng. Hãy xóa cookie trong cài đặt trình duyệt.');
       }
-      const cookies = await GM_cookie.list({ url: target });
-      if (!Array.isArray(cookies) || !cookies.length) return false;
+      const cookies = await GM_cookie.list({ url: location.href });
+      if (!Array.isArray(cookies) || !cookies.length) {
+        alert('Không tìm thấy cookie của trang này.');
+        return;
+      }
       for (const cookie of cookies) {
         const domain = cookie.domain?.replace(/^\\./, '') || host;
         const path = cookie.path || '/';
         const url = `${cookie.secure ? 'https' : 'http'}://${domain}${path}`;
         await GM_cookie.delete({ url, name: cookie.name, domain: cookie.domain, path });
       }
-      // Mark before navigating: the next document consumes this flag.
-      sessionStorage.setItem(key, JSON.stringify({ url: target, time: Date.now() }));
       location.reload();
-      return true;
     } catch (error) {
-      console.warn('Document Downloader: cookie cleanup failed; use manual cleanup if needed.', error);
-      return false;
+      console.warn('Document Downloader: cookie cleanup failed', error);
+      alert('Không xóa được cookie: ' + (error.message || error));
     }
   }
 
   // Fetch-like response used by Studocu's original .text() and .blob() calls.
-  function fetchDocumentAsset(url) {
+  async function fetchDocumentAsset(url) {
+    // Most assets already load correctly in the page. Prefer its native fetch;
+    // use ChromeXt only if the browser blocks access to the cross-origin body.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    try {
+      return await fetch(url, { credentials: 'omit', signal: controller.signal });
+    } catch (_) {
+      // A CORS failure or a stalled response needs ChromeXt's network bridge.
+    } finally {
+      clearTimeout(timer);
+    }
     return new Promise((resolve, reject) => {
+      let done = false;
+      let request;
+      const finish = (fn, value) => {
+        if (done) return;
+        done = true;
+        clearTimeout(deadline);
+        fn(value);
+      };
+      const deadline = setTimeout(() => {
+        finish(reject, new Error('Document asset request timed out'));
+        request?.abort?.();
+      }, 20000);
       if (typeof GM_xmlhttpRequest !== 'function') {
-        reject(new Error('ChromeXt GM_xmlhttpRequest is unavailable'));
+        finish(reject, new Error('ChromeXt GM_xmlhttpRequest is unavailable'));
         return;
       }
-      const request = GM_xmlhttpRequest({
+      try { request = GM_xmlhttpRequest({
         method: 'GET', url, responseType: 'blob', anonymous: true,
-        forceCORS: true, timeout: 60000,
+        forceCORS: true, timeout: 18000,
         onload(response) {
-          const blob = response.response instanceof Blob ? response.response : new Blob([response.response]);
-          resolve({ ok: response.status >= 200 && response.status < 300,
+          const blob = response.response instanceof Blob ? response.response : new Blob([response.response || '']);
+          finish(resolve, { ok: response.status >= 200 && response.status < 300,
             status: response.status, blob: () => Promise.resolve(blob), text: () => blob.text() });
         },
-        onerror: () => reject(new Error('Document asset request failed')),
-        ontimeout: () => reject(new Error('Document asset request timed out')),
-      });
+        onerror: () => finish(reject, new Error('Document asset request failed')),
+        ontimeout: () => finish(reject, new Error('Document asset request timed out')),
+      }); } catch (error) { finish(reject, error); }
       request?.catch?.(() => {});
-      if (!request) reject(new Error('ChromeXt refused the document request.'));
+      if (!request) finish(reject, new Error('ChromeXt refused the document request.'));
     });
   }
 
@@ -153,7 +166,9 @@ HEADER = """// ==UserScript==
 
   async function start() {
     if (isStudocu) {
-      if (await clearStudocuCookiesOnce()) return;
+      if (window !== window.top) return;
+      if (typeof GM_registerMenuCommand === 'function')
+        GM_registerMenuCommand('Xóa cookie Studocu và tải lại', clearStudocuCookies);
       installCss(STUDOCU_CSS);
       runStudocu();
     } else if (isScribd) {
@@ -163,7 +178,8 @@ HEADER = """// ==UserScript==
     } else if (isSlideShare && /\\/slideshow\\//.test(location.pathname)) {
       if (window === window.top || /\\/slideshow\\/embed_code\\/key\\//.test(location.pathname)) {
         if (window === window.top) installCss(SLIDESHARE_CSS);
-        runSlideShare();
+        if (window !== window.top || document.readyState !== 'loading') runSlideShare();
+        else document.addEventListener('DOMContentLoaded', runSlideShare, { once: true });
       }
     }
   }

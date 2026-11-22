@@ -1149,7 +1149,9 @@
         var urls = Object.keys(unique);
         var map = {};
         var next = 0, done = 0;
-        var CONCURRENCY = 12;
+        // Mobile ChromeXt's request bridge can stall when too many binary
+        // transfers are opened at once. Keep enough parallelism for speed.
+        var CONCURRENCY = 6;
 
         return new Promise(function(resolve) {
             function worker() {
@@ -1257,10 +1259,19 @@
         var rules = [];
         var names = {};
         pages.forEach(function(pf) {
+            // getBoundingClientRect() includes the viewer's mobile transform;
+            // offsetWidth/Height describe the document's actual CSS page size.
             var rect = pf.getBoundingClientRect();
-            var width = Math.round(rect.width);
-            var height = Math.round(rect.height);
+            var width = Math.round(pf.offsetWidth || rect.width);
+            var height = Math.round(pf.offsetHeight || rect.height);
             if (!(width > 0 && height > 0)) return;
+            if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+                // Android print commonly uses A4 regardless of named @page.
+                // Scale the page's native width to the available sheet without
+                // stretching it or turning a full page into a tiny center tile.
+                var scale = Math.min(793.7 / width, 1122.5 / height);
+                pf.style.setProperty('--dd-print-zoom', String(scale));
+            }
             var key = width + 'x' + height;
             if (!names[key]) {
                 names[key] = 'dd-page-' + (rules.length + 1);
@@ -1274,7 +1285,10 @@
             style.id = 'sh-dl-page-size';
             document.head.appendChild(style);
         }
-        style.textContent = rules.join('');
+        style.textContent = rules.join('') + (/Android|iPhone|iPad/i.test(navigator.userAgent) ?
+            '@media print{@page{size:A4 portrait;margin:0;}' +
+            '#sh-dl-overlay .sh-dl-pages .pf{page:auto !important;' +
+            'zoom:var(--dd-print-zoom,1) !important;}}' : '');
         return style.textContent;
     }
 

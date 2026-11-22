@@ -245,54 +245,50 @@
     hideTrialCta();
     removeSecondaryActions();
 
-    const custom = document.querySelector('[data-document-downloader-action="true"]');
+    const isMobileDownload = button =>
+      button.matches('[data-e2e="mobile-toolbar-download-button"]') ||
+      (button.matches('button[class*="button__with-danger__root"]') &&
+       /^(?:download|tải xuống|tải về)$/i.test(button.textContent.trim()));
     const nativeButtons = [...document.querySelectorAll(
-      'button[data-e2e*="download"]:not([data-document-downloader-action])'
+      'button[data-e2e*="download"],button[class*="button__with-danger__root"]'
     )].filter(button =>
+      button.dataset.documentDownloaderAction !== 'true' &&
       !button.closest('[data-e2e="doc-actions-container"]') &&
       (button.matches('[data-e2e*="multi-format"]') ||
-       button.closest('[class*="DropdownMenu-module_wrapper"]'))
+       button.closest('[class*="DropdownMenu-module_wrapper"]') ||
+       isMobileDownload(button))
     );
 
-    if (custom) {
-      for (const button of nativeButtons) {
-        const wrapper = button.closest('[class*="DropdownMenu-module_wrapper"]');
-        (wrapper || button).remove();
-      }
-      return;
-    }
+    // Desktop and mobile toolbars may coexist in the DOM. Replace each visible
+    // action in place so a hidden desktop button cannot remove the mobile one.
+    for (const button of nativeButtons) {
+      const clone = button.cloneNode(true);
+      clone.dataset.documentDownloaderAction = 'true';
+      clone.removeAttribute('id');
+      clone.removeAttribute('aria-haspopup');
+      clone.removeAttribute('aria-expanded');
+      clone.removeAttribute('data-state');
+      clone.querySelector('[class*="ButtonCore-module_rightIcon"], .dZ26XU, [class*="splitdropdownbutton__menuIndicator"]')?.remove();
 
-    const button = nativeButtons[0];
-    if (!button) return;
-    const clone = button.cloneNode(true);
-    clone.dataset.documentDownloaderAction = 'true';
-    clone.removeAttribute('id');
-    clone.removeAttribute('aria-haspopup');
-    clone.removeAttribute('aria-expanded');
-    clone.removeAttribute('data-state');
-    clone.querySelector('[class*="ButtonCore-module_rightIcon"], .dZ26XU')?.remove();
-
-    const wrapper = button.closest('[class*="DropdownMenu-module_wrapper"]');
-    const replacement = document.createElement('div');
-    replacement.dataset.documentDownloaderWrapper = 'true';
-    replacement.appendChild(clone);
-    if (wrapper) wrapper.replaceWith(replacement);
-    else button.replaceWith(replacement);
-
-    for (const extra of nativeButtons.slice(1)) {
-      const extraWrapper = extra.closest('[class*="DropdownMenu-module_wrapper"]');
-      (extraWrapper || extra).remove();
+      const wrapper = button.closest('[class*="DropdownMenu-module_wrapper"]');
+      const replacement = document.createElement('div');
+      replacement.dataset.documentDownloaderWrapper = 'true';
+      replacement.appendChild(clone);
+      if (wrapper) wrapper.replaceWith(replacement);
+      else button.replaceWith(clone);
     }
   }
 
   document.addEventListener('click', event => {
     const button = event.target.closest?.(
       'button[data-document-downloader-action="true"],' +
-      'button[data-e2e*="download"]'
+      'button[data-e2e*="download"],button[class*="button__with-danger__root"]'
     );
     if (!button ||
         button.closest('[data-e2e="doc-actions-container"]') ||
         (!button.matches('[data-document-downloader-action="true"],[data-e2e*="multi-format"]') &&
+         !button.matches('[data-e2e="mobile-toolbar-download-button"]') &&
+         !(button.matches('button[class*="button__with-danger__root"]') && /^(?:download|tải xuống|tải về)$/i.test(button.textContent.trim())) &&
          !button.closest('[class*="DropdownMenu-module_wrapper"]'))) return;
     event.preventDefault();
     event.stopPropagation();

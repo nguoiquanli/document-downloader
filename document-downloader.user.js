@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.1
+// @version      2.1.2
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*
@@ -13,6 +13,7 @@
 // @grant        GM_cookie
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
+// @grant        GM_registerMenuCommand
 // @grant        frames
 // @connect      doc-assets.studocu.com
 // @connect      image.slidesharecdn.com
@@ -38,63 +39,75 @@
     }
   }
 
-  // ChromeXt implements GM_cookie through Chrome DevTools Protocol. Its list
-  // accepts a URL, so only cookies applicable to this document are removed.
-  // ChromeXt's cookie API does not have the same domain-wide enumeration as
-  // chrome.cookies.getAll({domain}); this difference is intentional here.
-  async function clearStudocuCookiesOnce() {
-    if (window !== window.top) return false;
-    const key = 'document-downloader:cookie-reload';
-    const target = location.href.split('#', 1)[0];
+  // Only run on explicit request. Automatically deleting cookies on every URL
+  // update made ChromeXt reload repeatedly (and could invalidate signed URLs
+  // while the document was being assembled for printing).
+  async function clearStudocuCookies() {
     try {
-      const marker = JSON.parse(sessionStorage.getItem(key) || 'null');
-      if (marker?.url === target && Date.now() - marker.time < 30000) {
-        sessionStorage.removeItem(key);
-        return false;
-      }
-      sessionStorage.removeItem(key);
       if (typeof GM_cookie === 'undefined' || typeof GM_cookie.list !== 'function') {
-        console.warn('Document Downloader: ChromeXt GM_cookie is unavailable; clear Studocu cookies manually if necessary.');
-        return false;
+        throw new Error('ChromeXt GM_cookie không khả dụng. Hãy xóa cookie trong cài đặt trình duyệt.');
       }
-      const cookies = await GM_cookie.list({ url: target });
-      if (!Array.isArray(cookies) || !cookies.length) return false;
+      const cookies = await GM_cookie.list({ url: location.href });
+      if (!Array.isArray(cookies) || !cookies.length) {
+        alert('Không tìm thấy cookie của trang này.');
+        return;
+      }
       for (const cookie of cookies) {
         const domain = cookie.domain?.replace(/^\./, '') || host;
         const path = cookie.path || '/';
         const url = `${cookie.secure ? 'https' : 'http'}://${domain}${path}`;
         await GM_cookie.delete({ url, name: cookie.name, domain: cookie.domain, path });
       }
-      // Mark before navigating: the next document consumes this flag.
-      sessionStorage.setItem(key, JSON.stringify({ url: target, time: Date.now() }));
       location.reload();
-      return true;
     } catch (error) {
-      console.warn('Document Downloader: cookie cleanup failed; use manual cleanup if needed.', error);
-      return false;
+      console.warn('Document Downloader: cookie cleanup failed', error);
+      alert('Không xóa được cookie: ' + (error.message || error));
     }
   }
 
   // Fetch-like response used by Studocu's original .text() and .blob() calls.
-  function fetchDocumentAsset(url) {
+  async function fetchDocumentAsset(url) {
+    // Most assets already load correctly in the page. Prefer its native fetch;
+    // use ChromeXt only if the browser blocks access to the cross-origin body.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    try {
+      return await fetch(url, { credentials: 'omit', signal: controller.signal });
+    } catch (_) {
+      // A CORS failure or a stalled response needs ChromeXt's network bridge.
+    } finally {
+      clearTimeout(timer);
+    }
     return new Promise((resolve, reject) => {
+      let done = false;
+      let request;
+      const finish = (fn, value) => {
+        if (done) return;
+        done = true;
+        clearTimeout(deadline);
+        fn(value);
+      };
+      const deadline = setTimeout(() => {
+        finish(reject, new Error('Document asset request timed out'));
+        request?.abort?.();
+      }, 20000);
       if (typeof GM_xmlhttpRequest !== 'function') {
-        reject(new Error('ChromeXt GM_xmlhttpRequest is unavailable'));
+        finish(reject, new Error('ChromeXt GM_xmlhttpRequest is unavailable'));
         return;
       }
-      const request = GM_xmlhttpRequest({
+      try { request = GM_xmlhttpRequest({
         method: 'GET', url, responseType: 'blob', anonymous: true,
-        forceCORS: true, timeout: 60000,
+        forceCORS: true, timeout: 18000,
         onload(response) {
-          const blob = response.response instanceof Blob ? response.response : new Blob([response.response]);
-          resolve({ ok: response.status >= 200 && response.status < 300,
+          const blob = response.response instanceof Blob ? response.response : new Blob([response.response || '']);
+          finish(resolve, { ok: response.status >= 200 && response.status < 300,
             status: response.status, blob: () => Promise.resolve(blob), text: () => blob.text() });
         },
-        onerror: () => reject(new Error('Document asset request failed')),
-        ontimeout: () => reject(new Error('Document asset request timed out')),
-      });
+        onerror: () => finish(reject, new Error('Document asset request failed')),
+        ontimeout: () => finish(reject, new Error('Document asset request timed out')),
+      }); } catch (error) { finish(reject, error); }
       request?.catch?.(() => {});
-      if (!request) reject(new Error('ChromeXt refused the document request.'));
+      if (!request) finish(reject, new Error('ChromeXt refused the document request.'));
     });
   }
 
@@ -144,7 +157,9 @@
 
   async function start() {
     if (isStudocu) {
-      if (await clearStudocuCookiesOnce()) return;
+      if (window !== window.top) return;
+      if (typeof GM_registerMenuCommand === 'function')
+        GM_registerMenuCommand('Xóa cookie Studocu và tải lại', clearStudocuCookies);
       installCss(STUDOCU_CSS);
       runStudocu();
     } else if (isScribd) {
@@ -154,7 +169,8 @@
     } else if (isSlideShare && /\/slideshow\//.test(location.pathname)) {
       if (window === window.top || /\/slideshow\/embed_code\/key\//.test(location.pathname)) {
         if (window === window.top) installCss(SLIDESHARE_CSS);
-        runSlideShare();
+        if (window !== window.top || document.readyState !== 'loading') runSlideShare();
+        else document.addEventListener('DOMContentLoaded', runSlideShare, { once: true });
       }
     }
   }
@@ -1318,7 +1334,9 @@
         var urls = Object.keys(unique);
         var map = {};
         var next = 0, done = 0;
-        var CONCURRENCY = 12;
+        // Mobile ChromeXt's request bridge can stall when too many binary
+        // transfers are opened at once. Keep enough parallelism for speed.
+        var CONCURRENCY = 6;
 
         return new Promise(function(resolve) {
             function worker() {
@@ -1426,10 +1444,19 @@
         var rules = [];
         var names = {};
         pages.forEach(function(pf) {
+            // getBoundingClientRect() includes the viewer's mobile transform;
+            // offsetWidth/Height describe the document's actual CSS page size.
             var rect = pf.getBoundingClientRect();
-            var width = Math.round(rect.width);
-            var height = Math.round(rect.height);
+            var width = Math.round(pf.offsetWidth || rect.width);
+            var height = Math.round(pf.offsetHeight || rect.height);
             if (!(width > 0 && height > 0)) return;
+            if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+                // Android print commonly uses A4 regardless of named @page.
+                // Scale the page's native width to the available sheet without
+                // stretching it or turning a full page into a tiny center tile.
+                var scale = Math.min(793.7 / width, 1122.5 / height);
+                pf.style.setProperty('--dd-print-zoom', String(scale));
+            }
             var key = width + 'x' + height;
             if (!names[key]) {
                 names[key] = 'dd-page-' + (rules.length + 1);
@@ -1443,7 +1470,10 @@
             style.id = 'sh-dl-page-size';
             document.head.appendChild(style);
         }
-        style.textContent = rules.join('');
+        style.textContent = rules.join('') + (/Android|iPhone|iPad/i.test(navigator.userAgent) ?
+            '@media print{@page{size:A4 portrait;margin:0;}' +
+            '#sh-dl-overlay .sh-dl-pages .pf{page:auto !important;' +
+            'zoom:var(--dd-print-zoom,1) !important;}}' : '');
         return style.textContent;
     }
 
@@ -1988,54 +2018,50 @@
     hideTrialCta();
     removeSecondaryActions();
 
-    const custom = document.querySelector('[data-document-downloader-action="true"]');
+    const isMobileDownload = button =>
+      button.matches('[data-e2e="mobile-toolbar-download-button"]') ||
+      (button.matches('button[class*="button__with-danger__root"]') &&
+       /^(?:download|tải xuống|tải về)$/i.test(button.textContent.trim()));
     const nativeButtons = [...document.querySelectorAll(
-      'button[data-e2e*="download"]:not([data-document-downloader-action])'
+      'button[data-e2e*="download"],button[class*="button__with-danger__root"]'
     )].filter(button =>
+      button.dataset.documentDownloaderAction !== 'true' &&
       !button.closest('[data-e2e="doc-actions-container"]') &&
       (button.matches('[data-e2e*="multi-format"]') ||
-       button.closest('[class*="DropdownMenu-module_wrapper"]'))
+       button.closest('[class*="DropdownMenu-module_wrapper"]') ||
+       isMobileDownload(button))
     );
 
-    if (custom) {
-      for (const button of nativeButtons) {
-        const wrapper = button.closest('[class*="DropdownMenu-module_wrapper"]');
-        (wrapper || button).remove();
-      }
-      return;
-    }
+    // Desktop and mobile toolbars may coexist in the DOM. Replace each visible
+    // action in place so a hidden desktop button cannot remove the mobile one.
+    for (const button of nativeButtons) {
+      const clone = button.cloneNode(true);
+      clone.dataset.documentDownloaderAction = 'true';
+      clone.removeAttribute('id');
+      clone.removeAttribute('aria-haspopup');
+      clone.removeAttribute('aria-expanded');
+      clone.removeAttribute('data-state');
+      clone.querySelector('[class*="ButtonCore-module_rightIcon"], .dZ26XU, [class*="splitdropdownbutton__menuIndicator"]')?.remove();
 
-    const button = nativeButtons[0];
-    if (!button) return;
-    const clone = button.cloneNode(true);
-    clone.dataset.documentDownloaderAction = 'true';
-    clone.removeAttribute('id');
-    clone.removeAttribute('aria-haspopup');
-    clone.removeAttribute('aria-expanded');
-    clone.removeAttribute('data-state');
-    clone.querySelector('[class*="ButtonCore-module_rightIcon"], .dZ26XU')?.remove();
-
-    const wrapper = button.closest('[class*="DropdownMenu-module_wrapper"]');
-    const replacement = document.createElement('div');
-    replacement.dataset.documentDownloaderWrapper = 'true';
-    replacement.appendChild(clone);
-    if (wrapper) wrapper.replaceWith(replacement);
-    else button.replaceWith(replacement);
-
-    for (const extra of nativeButtons.slice(1)) {
-      const extraWrapper = extra.closest('[class*="DropdownMenu-module_wrapper"]');
-      (extraWrapper || extra).remove();
+      const wrapper = button.closest('[class*="DropdownMenu-module_wrapper"]');
+      const replacement = document.createElement('div');
+      replacement.dataset.documentDownloaderWrapper = 'true';
+      replacement.appendChild(clone);
+      if (wrapper) wrapper.replaceWith(replacement);
+      else button.replaceWith(clone);
     }
   }
 
   document.addEventListener('click', event => {
     const button = event.target.closest?.(
       'button[data-document-downloader-action="true"],' +
-      'button[data-e2e*="download"]'
+      'button[data-e2e*="download"],button[class*="button__with-danger__root"]'
     );
     if (!button ||
         button.closest('[data-e2e="doc-actions-container"]') ||
         (!button.matches('[data-document-downloader-action="true"],[data-e2e*="multi-format"]') &&
+         !button.matches('[data-e2e="mobile-toolbar-download-button"]') &&
+         !(button.matches('button[class*="button__with-danger__root"]') && /^(?:download|tải xuống|tải về)$/i.test(button.textContent.trim())) &&
          !button.closest('[class*="DropdownMenu-module_wrapper"]'))) return;
     event.preventDefault();
     event.stopPropagation();
@@ -2121,7 +2147,8 @@
       #${ID.overlay} .detail{white-space:nowrap;color:#667085;font-size:12px}#${ID.overlay} .save,#${ID.overlay} .cancel{padding:7px 12px;border-radius:7px;cursor:pointer;font-weight:600}
       #${ID.overlay} .save{border:0;background:#0a66c2;color:#fff}#${ID.overlay} .cancel{border:1px solid #cbd5e1;background:#fff}
       #${ID.overlay} iframe{flex:1;width:100%;min-height:0;border:0;background:#fff}
-      @media(max-width:767px){#${ID.button}{width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button} .ss-download-label{display:none}}
+      #${ID.button}.ss-floating-download{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:2147483646;min-width:0;padding:12px 16px;border:0;border-radius:50px;background:#0a66c2;color:#fff;font:600 14px system-ui;cursor:pointer;box-shadow:0 4px 18px #0005}
+      @media(max-width:767px){#${ID.overlay}{padding:6px}#${ID.overlay} .toolbar{gap:6px;padding:8px;flex-wrap:wrap}#${ID.overlay} .status{min-width:0;flex:1}#${ID.overlay} .title,#${ID.overlay} .detail{display:none}#${ID.button}:not(.ss-floating-download){width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button}:not(.ss-floating-download) .ss-download-label{display:none}}
     `;
     document.head.appendChild(style);
     removeTrialCta();
@@ -2261,12 +2288,34 @@
   }
 
   function requestEmbedSlides(frame) {
+    // ChromeXt may not inject the userscript into an iframe. The Embed shares
+    // the www.slideshare.net origin with the page, so read its DOM directly.
+    const direct = async () => {
+      let doc;
+      try { doc = frame.contentDocument; } catch (_) { return null; }
+      if (!doc) return null;
+      for (let attempt = 0; attempt < 25; attempt++) {
+        if (job.cancelled) throw new Error('Đã hủy');
+        if (collectSlides(doc).length) {
+          const slides = await loadSlideElements(doc, frame.contentWindow);
+          if (slides.length) return slides;
+        }
+        await sleep(300);
+      }
+      return null;
+    };
+    return direct().then(slides => slides || requestEmbedSlidesByBridge(frame));
+  }
+
+  function requestEmbedSlidesByBridge(frame) {
     return new Promise((resolve, reject) => {
       const token = crypto.randomUUID();
       const timer = setTimeout(() => {
         clearInterval(retry);
         window.removeEventListener('message', receive);
-        reject(new Error('Không nhận được phản hồi từ bridge Embed. Kiểm tra all_frames hoặc origin iframe.'));
+        const slides = collectSlides(document);
+        if (slides.length) resolve(slides);
+        else reject(new Error('Không đọc được ảnh trong bản Embed.'));
       }, 15000);
       function receive(event) {
         if (event.source !== frame.contentWindow || event.data?.type !== 'document-downloader-embed-result' || event.data.token !== token) return;
@@ -2489,8 +2538,7 @@
       return;
     }
 
-    const target = nativeWrapper?.parentElement || toolbarTarget();
-    if (!target) return;
+    const target = nativeWrapper?.parentElement || toolbarTarget() || document.body;
     const wrapper = document.createElement('div');
     wrapper.className = nativeWrapper?.className || 'download-button download-button-guest DownloadButton-module__Lil-cW__root';
     wrapper.dataset.scriptDownload = 'true';
@@ -2501,6 +2549,10 @@
     button.setAttribute('aria-label', template?.getAttribute('aria-label') || 'Download');
     button.className = template?.className || 'button Button-module__4HgN-q__root Button-module__4HgN-q__accent Button-module__4HgN-q__filled Button-module__4HgN-q__large';
     button.innerHTML = template?.innerHTML || `<span><span class="Button-module__4HgN-q__iconSlot"><span class="Button-module__4HgN-q__iconEl"><span role="img" aria-label="download icon" class="icon Icon-module__J9mFQG__icon Icon-module__J9mFQG__mask" style="--icon:url(/images/next/svg/download.svg)"></span></span><span class="Button-module__4HgN-q__spinnerEl"><svg class="spinner" viewBox="0 0 50 50" width="24" height="24" fill="currentColor"><path d="M43.935 25.145c0-10.318-8.364-18.683-18.683-18.683-10.318 0-18.683 8.365-18.683 18.683h4.068c0-8.071 6.543-14.615 14.615-14.615s14.615 6.543 14.615 14.615h4.068Z"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur=".6s" repeatCount="indefinite"/></path></svg></span></span></span>`;
+    if (target === document.body) {
+      button.className = 'ss-floating-download';
+      button.textContent = 'Tải PDF';
+    }
     const label = button.querySelector('.ellipsis, [class*="ellipsis"]');
     if (label) label.classList.add('ss-download-label');
     button.onclick = downloadPdf; wrapper.appendChild(button);

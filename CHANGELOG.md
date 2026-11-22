@@ -1,5 +1,12 @@
 # Changelog
 
+## Userscript 2.1.2 — 2026-11-22
+
+- Ngừng tự xóa cookie khi nạp Studocu; thêm lệnh xóa chủ động trong ChromeXt để không tạo vòng tải lại.
+- Giới hạn thời gian tải tài nguyên Studocu, giảm số ảnh tải đồng thời và căn kích thước bản in Android theo trang A4.
+- Đọc trực tiếp DOM của SlideShare Embed cùng nguồn, dùng bridge trong iframe làm dự phòng và tạo nút tải khi trang không có nút gốc.
+- Bắt thêm hai dạng nút Download của Scribd trên điện thoại.
+
 ## 2.1.1 — 2026-09-28
 
 - Đối chiếu StudocuHack v2.12.1 và tích hợp sửa lỗi phù hợp cho trình xem Studocu.
@@ -7,7 +14,6 @@
 - Gỡ khóa cuộn trên `html` và `body` do hộp thoại này tạo ra, gồm cả trường hợp Android.
 - Chỉ tác động tới `AuthWall` không có lớp `hideable`; các hộp đăng nhập do người dùng chủ động mở vẫn hoạt động.
 - Không tích hợp website và GitHub Pages mới của StudocuHack vì không thuộc chức năng extension.
-- Bổ sung [userscript ChromeXt (mở nội dung)](https://github.com/nguoiquanli/document-downloader/blob/main/document-downloader.user.js) cho Studocu, Scribd và SlideShare; Studocu tự xóa cookie áp dụng cho URL đang xem rồi nạp lại một lần khi ChromeXt hỗ trợ `GM_cookie`.
 
 ## 2.1.0 — 2026-09-22
 

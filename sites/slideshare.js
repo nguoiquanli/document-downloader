@@ -66,7 +66,8 @@
       #${ID.overlay} .detail{white-space:nowrap;color:#667085;font-size:12px}#${ID.overlay} .save,#${ID.overlay} .cancel{padding:7px 12px;border-radius:7px;cursor:pointer;font-weight:600}
       #${ID.overlay} .save{border:0;background:#0a66c2;color:#fff}#${ID.overlay} .cancel{border:1px solid #cbd5e1;background:#fff}
       #${ID.overlay} iframe{flex:1;width:100%;min-height:0;border:0;background:#fff}
-      @media(max-width:767px){#${ID.button}{width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button} .ss-download-label{display:none}}
+      #${ID.button}.ss-floating-download{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:2147483646;min-width:0;padding:12px 16px;border:0;border-radius:50px;background:#0a66c2;color:#fff;font:600 14px system-ui;cursor:pointer;box-shadow:0 4px 18px #0005}
+      @media(max-width:767px){#${ID.overlay}{padding:6px}#${ID.overlay} .toolbar{gap:6px;padding:8px;flex-wrap:wrap}#${ID.overlay} .status{min-width:0;flex:1}#${ID.overlay} .title,#${ID.overlay} .detail{display:none}#${ID.button}:not(.ss-floating-download){width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button}:not(.ss-floating-download) .ss-download-label{display:none}}
     `;
     document.head.appendChild(style);
     removeTrialCta();
@@ -206,12 +207,34 @@
   }
 
   function requestEmbedSlides(frame) {
+    // ChromeXt may not inject the userscript into an iframe. The Embed shares
+    // the www.slideshare.net origin with the page, so read its DOM directly.
+    const direct = async () => {
+      let doc;
+      try { doc = frame.contentDocument; } catch (_) { return null; }
+      if (!doc) return null;
+      for (let attempt = 0; attempt < 25; attempt++) {
+        if (job.cancelled) throw new Error('Đã hủy');
+        if (collectSlides(doc).length) {
+          const slides = await loadSlideElements(doc, frame.contentWindow);
+          if (slides.length) return slides;
+        }
+        await sleep(300);
+      }
+      return null;
+    };
+    return direct().then(slides => slides || requestEmbedSlidesByBridge(frame));
+  }
+
+  function requestEmbedSlidesByBridge(frame) {
     return new Promise((resolve, reject) => {
       const token = crypto.randomUUID();
       const timer = setTimeout(() => {
         clearInterval(retry);
         window.removeEventListener('message', receive);
-        reject(new Error('Không nhận được phản hồi từ bridge Embed. Kiểm tra all_frames hoặc origin iframe.'));
+        const slides = collectSlides(document);
+        if (slides.length) resolve(slides);
+        else reject(new Error('Không đọc được ảnh trong bản Embed.'));
       }, 15000);
       function receive(event) {
         if (event.source !== frame.contentWindow || event.data?.type !== 'document-downloader-embed-result' || event.data.token !== token) return;
@@ -456,8 +479,7 @@
       return;
     }
 
-    const target = nativeWrapper?.parentElement || toolbarTarget();
-    if (!target) return;
+    const target = nativeWrapper?.parentElement || toolbarTarget() || document.body;
     const wrapper = document.createElement('div');
     wrapper.className = nativeWrapper?.className || 'download-button download-button-guest DownloadButton-module__Lil-cW__root';
     wrapper.dataset.scriptDownload = 'true';
@@ -468,6 +490,10 @@
     button.setAttribute('aria-label', template?.getAttribute('aria-label') || 'Download');
     button.className = template?.className || 'button Button-module__4HgN-q__root Button-module__4HgN-q__accent Button-module__4HgN-q__filled Button-module__4HgN-q__large';
     button.innerHTML = template?.innerHTML || `<span><span class="Button-module__4HgN-q__iconSlot"><span class="Button-module__4HgN-q__iconEl"><span role="img" aria-label="download icon" class="icon Icon-module__J9mFQG__icon Icon-module__J9mFQG__mask" style="--icon:url(/images/next/svg/download.svg)"></span></span><span class="Button-module__4HgN-q__spinnerEl"><svg class="spinner" viewBox="0 0 50 50" width="24" height="24" fill="currentColor"><path d="M43.935 25.145c0-10.318-8.364-18.683-18.683-18.683-10.318 0-18.683 8.365-18.683 18.683h4.068c0-8.071 6.543-14.615 14.615-14.615s14.615 6.543 14.615 14.615h4.068Z"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur=".6s" repeatCount="indefinite"/></path></svg></span></span></span>`;
+    if (target === document.body) {
+      button.className = 'ss-floating-download';
+      button.textContent = 'Tải PDF';
+    }
     const label = button.querySelector('.ellipsis, [class*="ellipsis"]');
     if (label) label.classList.add('ss-download-label');
     button.onclick = downloadPdf; wrapper.appendChild(button);
