@@ -66,7 +66,7 @@
       #${ID.overlay} .detail{white-space:nowrap;color:#667085;font-size:12px}#${ID.overlay} .save,#${ID.overlay} .cancel{padding:7px 12px;border-radius:7px;cursor:pointer;font-weight:600}
       #${ID.overlay} .save{border:0;background:#0a66c2;color:#fff}#${ID.overlay} .cancel{border:1px solid #cbd5e1;background:#fff}
       #${ID.overlay} iframe{flex:1;width:100%;min-height:0;border:0;background:#fff}
-      @media(max-width:767px){#${ID.overlay}{padding:6px}#${ID.overlay} .toolbar{gap:6px;padding:8px;flex-wrap:wrap}#${ID.overlay} .status{min-width:0;flex:1}#${ID.overlay} .title,#${ID.overlay} .detail{display:none}#${ID.button}{width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button} .ss-download-label{display:none}}
+      @media(max-width:767px){#${ID.button}{width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button} .ss-download-label{display:none}}
     `;
     document.head.appendChild(style);
     removeTrialCta();
@@ -206,34 +206,12 @@
   }
 
   function requestEmbedSlides(frame) {
-    // ChromeXt may not inject the userscript into an iframe. The Embed shares
-    // the www.slideshare.net origin with the page, so read its DOM directly.
-    const direct = async () => {
-      let doc;
-      try { doc = frame.contentDocument; } catch (_) { return null; }
-      if (!doc) return null;
-      for (let attempt = 0; attempt < 25; attempt++) {
-        if (job.cancelled) throw new Error('Đã hủy');
-        if (collectSlides(doc).length) {
-          const slides = await loadSlideElements(doc, frame.contentWindow);
-          if (slides.length) return slides;
-        }
-        await sleep(300);
-      }
-      return null;
-    };
-    return direct().then(slides => slides || requestEmbedSlidesByBridge(frame));
-  }
-
-  function requestEmbedSlidesByBridge(frame) {
     return new Promise((resolve, reject) => {
       const token = crypto.randomUUID();
       const timer = setTimeout(() => {
         clearInterval(retry);
         window.removeEventListener('message', receive);
-        const slides = collectSlides(document);
-        if (slides.length) resolve(slides);
-        else reject(new Error('Không đọc được ảnh trong bản Embed.'));
+        reject(new Error('Không nhận được phản hồi từ bridge Embed. Kiểm tra all_frames hoặc origin iframe.'));
       }, 15000);
       function receive(event) {
         if (event.source !== frame.contentWindow || event.data?.type !== 'document-downloader-embed-result' || event.data.token !== token) return;
@@ -460,41 +438,52 @@
   }
 
   function toolbarTarget() {
-    const wrapper = document.querySelector('[class*="metadata-toolbar"][class*="wrapper"]');
-    if (wrapper) return [...wrapper.children].find(el => el instanceof HTMLElement && /metadata-toolbar.*(?:__|_)actions/.test(el.className)) || wrapper;
-    const actions = document.querySelector('[class*="metadata-toolbar"][class*="actions"]');
-    if (actions) return actions;
-    const share = document.querySelector('button[data-testid="share-button"],button[data-cy="share-button"]');
-    return share?.closest('[class*="actions"]') || share?.parentElement || null;
+    const toolbar = document.querySelector('[data-cy="slideshow-toolbar"]');
+    const groups = [...(toolbar?.querySelectorAll('.actions') || [])];
+    if (groups.length) return groups.find(group => group.getClientRects().length) || groups[0];
+    const wrapper = document.querySelector('[class*="metadata-toolbar"]');
+    if (wrapper) return wrapper.querySelector('.actions') || wrapper;
+    return document.querySelector('button[data-cy="embed-button"]')?.closest('.actions') || null;
   }
 
   function mount() {
     installStyle();
     removeTrialCta();
-    const nativeButtons = [...document.querySelectorAll('button[data-testid="download-button"],button[data-cy="download-button-toolbar"]')]
+    const nativeButtons = [...document.querySelectorAll('button[data-testid="download-button"],button[data-cy^="download-button"]')]
       .filter(button => button.id !== ID.button);
     const template = nativeButtons[0] || null;
     const nativeWrapper = template?.closest('.download-button') || null;
 
     if (document.getElementById(ID.button)) {
+      const current = document.getElementById(ID.button);
+      const target = toolbarTarget();
+      if (target && !current.getClientRects().length && !target.contains(current))
+        target.appendChild(current.closest('[data-script-download="true"]') || current);
       for (const button of nativeButtons) (button.closest('.download-button') || button).remove();
       return;
     }
 
     const target = nativeWrapper?.parentElement || toolbarTarget();
     if (!target) return;
+    const neighboringButton = target.querySelector('button[data-cy="embed-button"],button[data-cy="share-button"]');
+    const desktopToolbar = !nativeWrapper && !!neighboringButton;
     const wrapper = document.createElement('div');
-    wrapper.className = nativeWrapper?.className || 'download-button download-button-guest Lil-cW_root DownloadButton-module__Lil-cW__root';
+    wrapper.className = nativeWrapper?.className || 'download-button download-button-guest Lil-cW_root';
     wrapper.dataset.scriptDownload = 'true';
 
     const button = document.createElement('button');
     button.id = ID.button;
     button.type = 'button';
     button.setAttribute('aria-label', template?.getAttribute('aria-label') || 'Download');
-    button.className = template?.className || 'button _4HgN-q_root _4HgN-q_accent _4HgN-q_filled _4HgN-q_large Button-module__4HgN-q__root Button-module__4HgN-q__accent Button-module__4HgN-q__filled Button-module__4HgN-q__large';
-    button.innerHTML = template?.innerHTML || `<span><span class="Button-module__4HgN-q__iconSlot"><span class="Button-module__4HgN-q__iconEl"><span role="img" aria-label="download icon" class="icon Icon-module__J9mFQG__icon Icon-module__J9mFQG__mask" style="--icon:url(/images/next/svg/download.svg)"></span></span><span class="Button-module__4HgN-q__spinnerEl"><svg class="spinner" viewBox="0 0 50 50" width="24" height="24" fill="currentColor"><path d="M43.935 25.145c0-10.318-8.364-18.683-18.683-18.683-10.318 0-18.683 8.365-18.683 18.683h4.068c0-8.071 6.543-14.615 14.615-14.615s14.615 6.543 14.615 14.615h4.068Z"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur=".6s" repeatCount="indefinite"/></path></svg></span></span></span>`;
+    button.className = template?.className || (desktopToolbar
+      ? neighboringButton.className
+      : 'button _4HgN-q_root _4HgN-q_accent _4HgN-q_filled _4HgN-q_large');
+    button.innerHTML = template?.innerHTML || `<span><span class="_4HgN-q_iconSlot"><span class="_4HgN-q_iconEl"><span role="img" aria-label="download icon" class="icon J9mFQG_icon J9mFQG_mask" style="--icon:url(/images/next/svg/download.svg)"></span></span><span class="_4HgN-q_spinnerEl"><svg class="spinner" viewBox="0 0 50 50" width="24" height="24" fill="currentColor"><path d="M43.935 25.145c0-10.318-8.364-18.683-18.683-18.683-10.318 0-18.683 8.365-18.683 18.683h4.068c0-8.071 6.543-14.615 14.615-14.615s14.615 6.543 14.615 14.615h4.068Z"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur=".6s" repeatCount="indefinite"/></path></svg></span></span></span>`;
     const label = button.querySelector('.ellipsis, [class*="ellipsis"]');
     if (label) label.classList.add('ss-download-label');
+    if (desktopToolbar) {
+      button.innerHTML = `<span role="img" aria-label="download icon" class="icon J9mFQG_icon J9mFQG_mask" style="--icon:url(/images/next/svg/download.svg)"></span><span class="ss-download-label">Download</span>`;
+    }
     button.onclick = downloadPdf; wrapper.appendChild(button);
     if (nativeWrapper) nativeWrapper.replaceWith(wrapper); else target.appendChild(wrapper);
     for (const extra of nativeButtons.slice(1)) (extra.closest('.download-button') || extra).remove();

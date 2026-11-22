@@ -1,5 +1,11 @@
 # Changelog
 
+## Userscript 2.1.4 — 2026-11-22
+
+- Thêm nút xóa cookie cạnh Download trên Studocu; chỉ tải lại sau khi xác nhận xóa thành công, hướng dẫn xóa thủ công nếu ChromeXt không hỗ trợ.
+- Tìm đúng vùng `.actions` của thanh công cụ SlideShare khi thiếu Download và dựng nút theo lớp, biểu tượng của giao diện gốc trên máy tính, điện thoại.
+- Giữ các điều chỉnh tải iframe và giao diện điện thoại trong userscript; extension chỉ thay đổi nhận diện nút Scribd/SlideShare và nút SlideShare còn thiếu.
+
 ## Userscript 2.1.3 — 2026-11-22
 
 - Giữ nguyên ghi chú release trước đó và chỉ đổi liên kết userscript sang file raw.

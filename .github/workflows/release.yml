@@ -12,6 +12,7 @@ on:
       - CHANGELOG.md
       - document-downloader.user.js
       - build_userscript.py
+      - userscript-mobile.css
       - .github/workflows/release.yml
   workflow_dispatch:
 

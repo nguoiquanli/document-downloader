@@ -48,7 +48,7 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 
 Script chứa logic và CSS của cả ba website trong một file; không cần cài extension cùng lúc. ChromeXt cần `@grant frames` để đọc bản Embed SlideShare trong iframe. Ảnh SlideShare và tài nguyên Studocu được tải bằng `GM_xmlhttpRequest` ngay trong trình duyệt, không qua máy chủ trung gian.
 
-Trên Studocu, script không tự xóa cookie khi mở tài liệu. Nếu cần bắt đầu phiên xem mới, dùng lệnh **Xóa cookie Studocu và tải lại** trong menu ChromeXt; thao tác này chỉ chạy khi bạn chọn, nên không tạo vòng nạp lại. Nếu `GM_cookie` không hoạt động trong trình duyệt, hãy xóa cookie bằng cài đặt trình duyệt. API này liệt kê cookie của URL đang xem, không quét toàn bộ cookie ở mọi miền và đường dẫn như quyền `cookies` của extension.
+Trên Studocu, script không tự xóa cookie khi mở tài liệu. Nếu cần bắt đầu phiên xem mới, bấm **Xóa cookie** bên cạnh nút **Download**, hoặc dùng lệnh **Xóa cookie Studocu và tải lại** trong menu ChromeXt. Script chỉ tải lại sau khi xác nhận cookie đã được xóa. Nếu ChromeXt không xóa được cookie HttpOnly, thông báo sẽ hướng dẫn xóa dữ liệu trang trong cài đặt trình duyệt. API này chỉ kiểm tra cookie của URL đang xem, không quét toàn bộ cookie như quyền `cookies` của extension.
 
 Scribd và Studocu dùng hộp thoại **In / Lưu thành PDF** của trình duyệt Android. Nếu trình duyệt không cung cấp tùy chọn lưu PDF hoặc không cho in iframe, tính năng này phụ thuộc khả năng của trình duyệt. SlideShare dựng PDF rồi lưu bằng nút trong giao diện của script.
 

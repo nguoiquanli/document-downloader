@@ -1149,9 +1149,7 @@
         var urls = Object.keys(unique);
         var map = {};
         var next = 0, done = 0;
-        // Mobile ChromeXt's request bridge can stall when too many binary
-        // transfers are opened at once. Keep enough parallelism for speed.
-        var CONCURRENCY = 6;
+        var CONCURRENCY = 12;
 
         return new Promise(function(resolve) {
             function worker() {
@@ -1308,17 +1306,6 @@
             '#sh-dl-overlay .sh-dl-pages .page-content,#sh-dl-overlay .sh-dl-pages .pc{' +
             'display:block !important;visibility:visible !important;filter:none !important;opacity:1 !important;}' +
             '#sh-dl-overlay .sh-dl-pages .pf img{filter:none !important;opacity:1 !important;visibility:visible !important;}' +
-            '@media screen and (max-width:700px){' +
-            '#sh-dl-overlay{width:100vw;max-width:100vw;overflow-x:hidden;box-sizing:border-box;}' +
-            '#sh-dl-overlay .sh-dl-bar{box-sizing:border-box;width:100%;padding:8px;gap:6px;flex-wrap:wrap;}' +
-            '#sh-dl-overlay .sh-dl-bar .t{min-width:0;flex:1 1 50%;}' +
-            '#sh-dl-overlay .sh-dl-bar .actions{width:100%;min-width:0;display:flex;gap:6px;flex-wrap:wrap;}' +
-            '#sh-dl-overlay .sh-dl-bar .sh-dl-hint{width:100%;text-align:center;}' +
-            '#sh-dl-overlay .sh-dl-bar button{min-width:0;flex:1 1 120px;padding:8px;}' +
-            '#sh-dl-overlay .sh-dl-loading .bar{max-width:calc(100vw - 32px);}' +
-            '#sh-dl-overlay .sh-dl-pages{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}' +
-            '#sh-dl-overlay .sh-dl-pages .p2hv{width:max-content;max-width:none;margin:0 auto;}' +
-            '}' +
             '@media print{' +
             'body > *:not(#sh-dl-overlay){display:none !important;}' +
             'html,body{background:#fff !important;height:auto !important;overflow:visible !important;}' +

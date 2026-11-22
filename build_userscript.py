@@ -10,7 +10,7 @@ OUT = ROOT / "document-downloader.user.js"
 HEADER = """// ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.3
+// @version      2.1.4
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*
@@ -53,14 +53,9 @@ HEADER = """// ==UserScript==
   // while the document was being assembled for printing).
   async function clearStudocuCookies() {
     try {
-      if (typeof GM_cookie === 'undefined' || typeof GM_cookie.list !== 'function') {
-        throw new Error('ChromeXt GM_cookie không khả dụng. Hãy xóa cookie trong cài đặt trình duyệt.');
-      }
-      const cookies = await GM_cookie.list({ url: location.href });
-      if (!Array.isArray(cookies) || !cookies.length) {
-        alert('Không tìm thấy cookie của trang này.');
-        return;
-      }
+      const api = typeof GM_cookie !== 'undefined' && typeof GM_cookie.list === 'function'
+        && typeof GM_cookie.delete === 'function';
+      const cookies = api ? await GM_cookie.list({ url: location.href }) : [];
       for (const cookie of cookies) {
         // CDP matches an exact domain/path OR a URL. Passing both can leave
         // cookies untouched when the current URL and the cookie domain differ.
@@ -69,7 +64,7 @@ HEADER = """// ==UserScript==
         try { await GM_cookie.delete(details); }
         catch (error) { console.warn('Document Downloader: cookie domain/path deletion failed', error); }
       }
-      const remaining = await GM_cookie.list({ url: location.href });
+      const remaining = api ? await GM_cookie.list({ url: location.href }) : [];
       if (remaining.length) {
         for (const cookie of remaining) {
           const details = { name: cookie.name, url: location.href };
@@ -78,15 +73,54 @@ HEADER = """// ==UserScript==
           catch (error) { console.warn('Document Downloader: cookie URL deletion failed', error); }
         }
       }
-      const stillPresent = await GM_cookie.list({ url: location.href });
+      // document.cookie can remove non-HttpOnly cookies when ChromeXt's CDP
+      // bridge does not support deletion. HttpOnly requires GM_cookie or the
+      // browser's site-data settings.
+      const visible = document.cookie.split(';').map(part => part.trim().split('=')[0]).filter(Boolean);
+      const paths = ['/'];
+      const parts = location.pathname.split('/').filter(Boolean);
+      for (let i = 1; i <= parts.length; i++) paths.push('/' + parts.slice(0, i).join('/') + '/');
+      const domains = [''];
+      const hostParts = location.hostname.split('.');
+      for (let i = 0; i < hostParts.length - 1; i++) domains.push(hostParts.slice(i).join('.'));
+      for (const name of visible) for (const path of paths) for (const domain of domains) {
+        document.cookie = `${name}=; Max-Age=0; Path=${path}${domain ? '; Domain=' + domain : ''}`;
+      }
+      const stillPresent = api ? await GM_cookie.list({ url: location.href }) : [];
       if (stillPresent.length) {
         throw new Error(`Còn ${stillPresent.length} cookie; hãy xóa bằng cài đặt trình duyệt.`);
       }
+      if (document.cookie) throw new Error('Vẫn còn cookie của trang; hãy xóa bằng cài đặt trình duyệt.');
+      if (!api && !visible.length) throw new Error('ChromeXt GM_cookie không khả dụng để kiểm tra hoặc xóa cookie HttpOnly.');
+      if (api && !cookies.length && !visible.length) { alert('Không tìm thấy cookie của trang này.'); return; }
       location.reload();
     } catch (error) {
       console.warn('Document Downloader: cookie cleanup failed', error);
       alert('Không xóa được cookie: ' + (error.message || error));
     }
+  }
+
+  function installStudocuCookieButton() {
+    const selector = '[data-test-selector="document-viewer-download-button-topbar"], [data-dd-studocu-download="true"]';
+    const mount = () => {
+      for (const download of document.querySelectorAll(selector)) {
+        if (download.closest('#sh-dl-overlay') || download.nextElementSibling?.matches('[data-dd-cookie-clear]')) continue;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.ddCookieClear = 'true';
+        button.textContent = 'Xóa cookie';
+        button.setAttribute('aria-label', 'Xóa cookie Studocu');
+        button.addEventListener('click', event => {
+          event.preventDefault(); event.stopImmediatePropagation();
+          clearStudocuCookies();
+        });
+        download.after(button);
+      }
+    };
+    mount();
+    let pending;
+    new MutationObserver(() => { clearTimeout(pending); pending = setTimeout(mount, 100); })
+      .observe(document.documentElement, { childList: true, subtree: true });
   }
 
   // Fetch-like response used by Studocu's original .text() and .blob() calls.
@@ -180,12 +214,14 @@ HEADER = """// ==UserScript==
   }
 
   async function start() {
+    installCss(USERSCRIPT_CSS);
     if (isStudocu) {
       if (window !== window.top) return;
       if (typeof GM_registerMenuCommand === 'function')
         GM_registerMenuCommand('Xóa cookie Studocu và tải lại', clearStudocuCookies);
       installCss(STUDOCU_CSS);
       runStudocu();
+      installStudocuCookieButton();
     } else if (isScribd) {
       if (window !== window.top) return;
       installCss(SCRIBD_CSS);
@@ -205,6 +241,7 @@ HEADER = """// ==UserScript==
   const STUDOCU_CSS = __STUDOCU_CSS__;
   const SCRIBD_CSS = __SCRIBD_CSS__;
   const SLIDESHARE_CSS = __SLIDESHARE_CSS__;
+  const USERSCRIPT_CSS = __USERSCRIPT_CSS__;
 
   function runStudocu() {
 __STUDOCU_JS__
@@ -225,15 +262,50 @@ def build():
         ('STUDOCU_CSS', 'styles/studocu.css'),
         ('SCRIBD_CSS', 'styles/scribd.css'),
         ('SLIDESHARE_CSS', 'styles/slideshare.css'),
+        ('USERSCRIPT_CSS', 'userscript-mobile.css'),
     ]:
         script = script.replace(f'__{label}__', json.dumps((ROOT / path).read_text(), ensure_ascii=False))
 
     studocu = (ROOT / 'sites/studocu.js').read_text()
     studocu = studocu.replace("fetch(url, { credentials: 'omit' })", 'fetchDocumentAsset(url)')
     assert studocu.count('fetchDocumentAsset(url)') == 2
+    studocu = studocu.replace('var CONCURRENCY = 12;', 'var CONCURRENCY = 6;')
+    assert studocu.count('var CONCURRENCY = 6;') == 1
     script = script.replace('__STUDOCU_JS__', studocu)
     script = script.replace('__SCRIBD_JS__', (ROOT / 'sites/scribd.js').read_text())
     slide = (ROOT / 'sites/slideshare.js').read_text()
+    # ChromeXt may not inject this userscript into same-origin embed iframes.
+    # Keep the iframe DOM path in the userscript without altering the extension.
+    direct = '''  function requestEmbedSlides(frame) {
+    // ChromeXt can omit iframe injection. Read the same-origin Embed directly.
+    const direct = async () => {
+      let doc;
+      try { doc = frame.contentDocument; } catch (_) { return null; }
+      if (!doc) return null;
+      for (let attempt = 0; attempt < 25; attempt++) {
+        if (job.cancelled) throw new Error('Đã hủy');
+        if (collectSlides(doc).length) {
+          const slides = await loadSlideElements(doc, frame.contentWindow);
+          if (slides.length) return slides;
+        }
+        await sleep(300);
+      }
+      return null;
+    };
+    return direct().then(slides => slides || requestEmbedSlidesByBridge(frame));
+  }
+
+'''
+    old_start = slide.index('  function requestEmbedSlides(frame) {')
+    old_end = slide.index('  function fetchImage(url) {', old_start)
+    # The extension's bridge body remains as the fallback after direct DOM access.
+    slide = slide[:old_start] + direct + slide[old_start:old_end].replace(
+        'function requestEmbedSlides(frame)', 'function requestEmbedSlidesByBridge(frame)', 1
+    ).replace(
+        "reject(new Error('Không nhận được phản hồi từ bridge Embed. Kiểm tra all_frames hoặc origin iframe.'));",
+        "const slides = collectSlides(document);\n        if (slides.length) resolve(slides);\n        else reject(new Error('Không đọc được ảnh trong bản Embed.'));",
+        1
+    ) + slide[old_end:]
     begin = slide.index('  function fetchImage(url) {')
     end = slide.index('  function normalizeImage(', begin)
     slide = slide[:begin] + '''  function fetchImage(url) {
