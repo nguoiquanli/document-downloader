@@ -46,6 +46,8 @@ Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn 
 2. Cho phép các quyền `GM_cookie`, `GM_xmlhttpRequest` và truy cập các miền Studocu, Scribd, SlideShare được hỏi khi cài.
 3. Truy cập tài liệu rồi dùng nút **Download** trên trang như khi dùng extension.
 
+Khi cập nhật ChromeXt, kiểm tra userscript đã lên phiên bản `2.1.5`; nếu vẫn là bản cũ, mở lại liên kết raw ở bước 1 để cài đè.
+
 Script chứa logic và CSS của cả ba website trong một file; không cần cài extension cùng lúc. ChromeXt cần `@grant frames` để đọc bản Embed SlideShare trong iframe. Ảnh SlideShare và tài nguyên Studocu được tải bằng `GM_xmlhttpRequest` ngay trong trình duyệt, không qua máy chủ trung gian.
 
 Trên Studocu, script không tự xóa cookie khi mở tài liệu. Nếu cần bắt đầu phiên xem mới, bấm **Xóa cookie** bên cạnh nút **Download**, hoặc dùng lệnh **Xóa cookie Studocu và tải lại** trong menu ChromeXt. Script chỉ tải lại sau khi xác nhận cookie đã được xóa. Nếu ChromeXt không xóa được cookie HttpOnly, thông báo sẽ hướng dẫn xóa dữ liệu trang trong cài đặt trình duyệt. API này chỉ kiểm tra cookie của URL đang xem, không quét toàn bộ cookie như quyền `cookies` của extension.

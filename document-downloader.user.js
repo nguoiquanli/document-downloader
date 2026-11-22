@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.4
+// @version      2.1.5
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*
@@ -17,6 +17,8 @@
 // @grant        frames
 // @connect      doc-assets.studocu.com
 // @connect      image.slidesharecdn.com
+// @updateURL    https://raw.githubusercontent.com/nguoiquanli/document-downloader/main/document-downloader.user.js
+// @downloadURL  https://raw.githubusercontent.com/nguoiquanli/document-downloader/main/document-downloader.user.js
 // ==/UserScript==
 
 /* Generated from sites/*.js and styles/*.css. Edit those sources and rebuild. */
@@ -31,12 +33,14 @@
   const isSlideShare = isSite('slideshare.net');
 
   function installCss(css) {
-    if (typeof GM_addStyle === 'function') GM_addStyle(css);
-    else {
-      const style = document.createElement('style');
-      style.textContent = css;
-      (document.head || document.documentElement).appendChild(style);
+    if (typeof GM_addStyle === 'function') {
+      try { GM_addStyle(css); return; } catch (error) {
+        console.warn('Document Downloader: GM_addStyle failed', error);
+      }
     }
+    const style = document.createElement('style');
+    style.textContent = css;
+    (document.head || document.documentElement).appendChild(style);
   }
 
   // Only run on explicit request. Automatically deleting cookies on every URL
@@ -92,9 +96,12 @@
   }
 
   function installStudocuCookieButton() {
-    const selector = '[data-test-selector="document-viewer-download-button-topbar"], [data-dd-studocu-download="true"]';
+    const selector = '[data-test-selector="document-viewer-download-button-topbar"], [data-dd-studocu-download="true"], [class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button';
+    const downloadWords = /^(download|downloaden|scarica|descargar|t[eé]l[eé]charger|herunterladen|pobierz|baixar|indir|скачать|ladda ner|last ned|lataa|tải xuống|tải về)$/i;
     const mount = () => {
       for (const download of document.querySelectorAll(selector)) {
+        if (!download.matches('[data-test-selector="document-viewer-download-button-topbar"], [data-dd-studocu-download="true"]')
+            && !downloadWords.test((download.textContent || '').trim())) continue;
         if (download.closest('#sh-dl-overlay') || download.nextElementSibling?.matches('[data-dd-cookie-clear]')) continue;
         const button = document.createElement('button');
         button.type = 'button';
@@ -111,7 +118,8 @@
     mount();
     let pending;
     new MutationObserver(() => { clearTimeout(pending); pending = setTimeout(mount, 100); })
-      .observe(document.documentElement, { childList: true, subtree: true });
+      .observe(document.documentElement, { childList: true, subtree: true,
+        attributes: true, attributeFilter: ['data-dd-studocu-download', 'data-test-selector'] });
   }
 
   // Fetch-like response used by Studocu's original .text() and .blob() calls.
@@ -205,14 +213,21 @@
   }
 
   async function start() {
+    // ChromeXt can evaluate @run-at document-start before <html> exists.
+    if (!document.documentElement) {
+      document.addEventListener('readystatechange', start, { once: true });
+      return;
+    }
     installCss(USERSCRIPT_CSS);
     if (isStudocu) {
       if (window !== window.top) return;
-      if (typeof GM_registerMenuCommand === 'function')
-        GM_registerMenuCommand('Xóa cookie Studocu và tải lại', clearStudocuCookies);
+      if (typeof GM_registerMenuCommand === 'function') {
+        try { GM_registerMenuCommand('Xóa cookie Studocu và tải lại', clearStudocuCookies); }
+        catch (error) { console.warn('Document Downloader: menu command failed', error); }
+      }
       installCss(STUDOCU_CSS);
-      runStudocu();
       installStudocuCookieButton();
+      runStudocu();
     } else if (isScribd) {
       if (window !== window.top) return;
       installCss(SCRIBD_CSS);

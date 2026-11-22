@@ -1,5 +1,11 @@
 # Changelog
 
+## Userscript 2.1.5 — 2026-11-22
+
+- Chờ phần tử gốc trước khi khởi tạo trên ChromeXt; nút xóa cookie được gắn độc lập trước module Studocu và theo dõi cả khi nút Download đổi thuộc tính.
+- Thêm địa chỉ cập nhật raw và tăng phiên bản để trình quản lý userscript nhận bản mới.
+- Kiểm tra bộ chọn nút SlideShare với DOM thực tế của trang không có Download.
+
 ## Userscript 2.1.4 — 2026-11-22
 
 - Thêm nút xóa cookie cạnh Download trên Studocu; chỉ tải lại sau khi xác nhận xóa thành công, hướng dẫn xóa thủ công nếu ChromeXt không hỗ trợ.
