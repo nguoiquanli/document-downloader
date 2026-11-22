@@ -14,3 +14,40 @@
 [data-e2e^="doc-actions-print-button"] {
   display: none !important;
 }
+
+@media screen and (max-width: 700px) {
+  #scribd-fast-download-overlay {
+    padding: 6px !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+  #scribd-fast-download-overlay > div:first-child {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    min-width: 0 !important;
+  }
+  #scribd-fast-download-overlay > div:first-child > strong {
+    flex: 1 1 100% !important;
+  }
+  #scribd-fast-download-overlay [data-status] {
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+  #scribd-fast-download-overlay > div:first-child > div {
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+  #scribd-fast-download-overlay [data-bar] {
+    min-width: 0 !important;
+  }
+  #scribd-fast-download-overlay [data-print],
+  #scribd-fast-download-overlay [data-close] {
+    min-width: 0 !important;
+    flex: 1 1 120px !important;
+  }
+  #scribd-fast-download-overlay [data-reader] {
+    min-height: 0 !important;
+  }
+}

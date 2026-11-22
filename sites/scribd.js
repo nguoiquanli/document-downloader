@@ -241,14 +241,15 @@
     ).forEach(button => (button.closest('li') || button).remove());
   }
 
+  function isMobileDownload(button) {
+    return button.matches('[data-e2e="mobile-toolbar-download-button"]') ||
+      (button.matches('button[class*="button__with-danger__root"]') &&
+       !!button.querySelector('[class*="iconLeft"] svg path[d*="7.586"]'));
+  }
+
   function makeDownloadButtonSingleAction() {
     hideTrialCta();
     removeSecondaryActions();
-
-    const isMobileDownload = button =>
-      button.matches('[data-e2e="mobile-toolbar-download-button"]') ||
-      (button.matches('button[class*="button__with-danger__root"]') &&
-       /^(?:download|tải xuống|tải về)$/i.test(button.textContent.trim()));
     const nativeButtons = [...document.querySelectorAll(
       'button[data-e2e*="download"],button[class*="button__with-danger__root"]'
     )].filter(button =>
@@ -287,8 +288,7 @@
     if (!button ||
         button.closest('[data-e2e="doc-actions-container"]') ||
         (!button.matches('[data-document-downloader-action="true"],[data-e2e*="multi-format"]') &&
-         !button.matches('[data-e2e="mobile-toolbar-download-button"]') &&
-         !(button.matches('button[class*="button__with-danger__root"]') && /^(?:download|tải xuống|tải về)$/i.test(button.textContent.trim())) &&
+         !isMobileDownload(button) &&
          !button.closest('[class*="DropdownMenu-module_wrapper"]'))) return;
     event.preventDefault();
     event.stopPropagation();

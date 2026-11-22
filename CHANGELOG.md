@@ -1,11 +1,18 @@
 # Changelog
 
+## Userscript 2.1.3 — 2026-11-22
+
+- Giữ nguyên ghi chú release trước đó và chỉ đổi liên kết userscript sang file raw.
+- Xóa cookie Studocu bằng miền và đường dẫn chính xác, kiểm tra kết quả trước khi nạp lại; trả quy tắc in về nguyên bản và sửa lớp phủ trên điện thoại.
+- Dùng nút theo cấu trúc của thanh công cụ SlideShare; bỏ nút nổi độc lập.
+- Nhận diện nút Scribd trên điện thoại bằng thuộc tính và biểu tượng, không phụ thuộc ngôn ngữ; sửa lớp phủ để các nút không bị tràn.
+
 ## Userscript 2.1.2 — 2026-11-22
 
 - Ngừng tự xóa cookie khi nạp Studocu; thêm lệnh xóa chủ động trong ChromeXt để không tạo vòng tải lại.
-- Giới hạn thời gian tải tài nguyên Studocu, giảm số ảnh tải đồng thời và căn kích thước bản in Android theo trang A4.
-- Đọc trực tiếp DOM của SlideShare Embed cùng nguồn, dùng bridge trong iframe làm dự phòng và tạo nút tải khi trang không có nút gốc.
-- Bắt thêm hai dạng nút Download của Scribd trên điện thoại.
+- Giới hạn thời gian tải tài nguyên Studocu, giảm số ảnh tải đồng thời; giữ kích thước in gốc của từng trang và sửa lớp phủ tải trên màn hình hẹp.
+- Đọc trực tiếp DOM của SlideShare Embed cùng nguồn, dùng bridge trong iframe làm dự phòng và chèn nút theo giao diện thanh công cụ khi trang không có nút gốc.
+- Bắt thêm hai dạng nút Download của Scribd trên điện thoại theo thuộc tính và biểu tượng, không dựa vào ngôn ngữ nút; sửa lớp phủ trên màn hình hẹp.
 
 ## 2.1.1 — 2026-09-28
 

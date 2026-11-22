@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.2
+// @version      2.1.3
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*
@@ -53,10 +53,25 @@
         return;
       }
       for (const cookie of cookies) {
-        const domain = cookie.domain?.replace(/^\./, '') || host;
-        const path = cookie.path || '/';
-        const url = `${cookie.secure ? 'https' : 'http'}://${domain}${path}`;
-        await GM_cookie.delete({ url, name: cookie.name, domain: cookie.domain, path });
+        // CDP matches an exact domain/path OR a URL. Passing both can leave
+        // cookies untouched when the current URL and the cookie domain differ.
+        const details = { name: cookie.name, domain: cookie.domain, path: cookie.path || '/' };
+        if (cookie.partitionKey) details.partitionKey = cookie.partitionKey;
+        try { await GM_cookie.delete(details); }
+        catch (error) { console.warn('Document Downloader: cookie domain/path deletion failed', error); }
+      }
+      const remaining = await GM_cookie.list({ url: location.href });
+      if (remaining.length) {
+        for (const cookie of remaining) {
+          const details = { name: cookie.name, url: location.href };
+          if (cookie.partitionKey) details.partitionKey = cookie.partitionKey;
+          try { await GM_cookie.delete(details); }
+          catch (error) { console.warn('Document Downloader: cookie URL deletion failed', error); }
+        }
+      }
+      const stillPresent = await GM_cookie.list({ url: location.href });
+      if (stillPresent.length) {
+        throw new Error(`Còn ${stillPresent.length} cookie; hãy xóa bằng cài đặt trình duyệt.`);
       }
       location.reload();
     } catch (error) {
@@ -179,7 +194,7 @@
   Promise.resolve().then(start).catch(error => console.error('Document Downloader failed to start', error));
 
   const STUDOCU_CSS = "/* ========== Core blur removal ========== */\n\n/* Universal nofilter override */\nbody .nofilter {\n    filter: none !important;\n    -webkit-filter: none !important;\n    opacity: 1 !important;\n}\n\n/* Force remove blur from blurred page wrappers (CSS modules with dynamic hashes) */\n.page-content[class*=\"blurred\"],\n.page-content[class*=\"Blurred\"],\n.pf[class*=\"blurred\"],\n.pf[class*=\"Blurred\"] {\n    filter: none !important;\n    -webkit-filter: none !important;\n    opacity: 1 !important;\n    user-select: auto !important;\n    -webkit-user-select: auto !important;\n    pointer-events: auto !important;\n    visibility: visible !important;\n    clip-path: none !important;\n    -webkit-clip-path: none !important;\n}\n\n/* Force remove blur from all page wrapper elements */\n.pf.nofilter,\n.pf {\n    filter: none !important;\n    -webkit-filter: none !important;\n    opacity: 1 !important;\n    clip-path: none !important;\n    -webkit-clip-path: none !important;\n    mask-image: none !important;\n    -webkit-mask-image: none !important;\n}\n\n/* Force all page content visible and unblurred */\n.page-content,\n.page-content.nofilter {\n    filter: none !important;\n    -webkit-filter: none !important;\n    opacity: 1 !important;\n    visibility: visible !important;\n    user-select: auto !important;\n    -webkit-user-select: auto !important;\n    pointer-events: auto !important;\n    clip-path: none !important;\n    -webkit-clip-path: none !important;\n    mask-image: none !important;\n    -webkit-mask-image: none !important;\n    color: inherit !important;\n}\n\n/* Force images inside pages to be fully visible */\n.pf img,\n.page-content img {\n    filter: none !important;\n    -webkit-filter: none !important;\n    opacity: 1 !important;\n    visibility: visible !important;\n    clip-path: none !important;\n    -webkit-clip-path: none !important;\n    mask-image: none !important;\n    -webkit-mask-image: none !important;\n}\n\n/* Remove blur from blurred image wrapper (Studocu's component) */\n[class*=\"blurred-image-wrapper\"],\n[class*=\"BlurredImage\"],\n[class*=\"blurred-page\"],\n[class*=\"BlurredPage\"] {\n    filter: none !important;\n    -webkit-filter: none !important;\n    opacity: 1 !important;\n    visibility: visible !important;\n}\n\n/* Remove backdrop-filter from any overlay in the document viewer */\n[class*=\"Viewer_document\"] [class*=\"overlay\"],\n[class*=\"Viewer_document\"] [class*=\"Overlay\"],\n#viewer-wrapper [class*=\"overlay\"],\n#viewer-wrapper [class*=\"Overlay\"] {\n    backdrop-filter: none !important;\n    -webkit-backdrop-filter: none !important;\n    background: transparent !important;\n    display: none !important;\n}\n\n/* Prevent any pseudo-element overlays on page elements */\n.pf::before,\n.pf::after,\n.page-content::before,\n.page-content::after,\n[class*=\"blurred\"]::before,\n[class*=\"blurred\"]::after,\n[class*=\"Blurred\"]::before,\n[class*=\"Blurred\"]::after {\n    display: none !important;\n    content: none !important;\n    opacity: 0 !important;\n    visibility: hidden !important;\n}\n\n/* ========== Sign-in wall for readers flagged as bots ========== */\n/* Studocu can mount a non-dismissible AuthWall over a document and lock\n   scrolling. Only hide the open AuthWall dialog without the `hideable`\n   class, so sign-in dialogs opened by the reader remain usable. */\ndiv:has(> dialog[open][class*=\"AuthWall\"]:not([class*=\"hideable\"])) {\n    display: none !important;\n}\n\nhtml:has(dialog[open][class*=\"AuthWall\"]:not([class*=\"hideable\"])) {\n    overflow: visible !important;\n    padding-right: 0 !important;\n    height: auto !important;\n}\n\nhtml:has(dialog[open][class*=\"AuthWall\"]:not([class*=\"hideable\"])) body {\n    position: static !important;\n    top: auto !important;\n    overflow: visible !important;\n}\n\n/* ========== Download button styles ========== */\n.download-button-2, .github-button {\n    background: inherit;\n    border-radius: 3px;\n    color: white;\n    display: inline-flex;\n    line-height: normal;\n    vertical-align: middle;\n    transition: .3s;\n}\n\n.download-button-2 {\n    height: 30px;\n    margin: 0 5px;\n    min-width: 30px;\n}\n\n.github-button {\n    background-color: #333;\n    border: solid 1px #333;\n    display: block;\n    line-height: 1.4286;\n    margin-right: 20px;\n    padding: 8px 20px;\n    border-radius: 100%;\n}\n\n.tooltip-bottom {\n    position: relative;\n    display: inline-flex;\n    border-bottom: solid 1px black;\n}\n\n.tooltip-bottom .tooltiptext-bottom {\n    visibility: hidden;\n    width: 200px;\n    background-color: #555;\n    color: white;\n    text-align: center;\n    border-radius: 6px;\n    padding: 5px;\n    position: absolute;\n    z-index: 1;\n    top: 120%;\n    left: 50%;\n    margin-left: -100px;\n    opacity: 0;\n    transition: opacity .3s;\n}\n\n.tooltip-bottom .tooltiptext-bottom::after {\n    content: \"\";\n    position: absolute;\n    bottom: 100%;\n    left: 50%;\n    margin-left: -5px;\n    border-width: 5px;\n    border-style: solid;\n    border-color: transparent transparent #555 transparent;\n}\n\n.tooltip-bottom:hover .tooltiptext-bottom {\n    visibility: visible;\n    opacity: 1;\n}\n\n/* Style for the custom StudocuHack logo replacement */\n.studocuhack-logo-replaced {\n    cursor: pointer;\n    display: inline-flex;\n    align-items: center;\n}\n\n.studocuhack-logo-replaced svg {\n    flex-shrink: 0;\n}\n\n@media (max-width: 600px) {\n    /* Hide the full text logo on small screens, keep only the icon */\n    .studocuhack-logo-replaced > span {\n        display: none !important;\n    }\n\n}\n\n@media print {\n    .p2hv .stopoverlappingourstyleplease {\n        display: block;\n    }\n}\n\n/* ========== Hide premium banners and preview restrictions ========== */\n[class*=\"PremiumBannerBlobWrapper\"],\n[class*=\"PremiumBannerHeader\"],\n[class*=\"PremiumBannerSubHeader\"],\n[class*=\"PremiumBannerBenefitsList\"],\n[class*=\"PremiumBannerButtons\"],\n[class*=\"InlineBanner_inline-banner\"],\n[class*=\"PremiumPageClarificationBanner\"],\n[class*=\"premium-banner-wrapper\"],\n[class*=\"premiumBannerWrapper\"],\n[class*=\"ViewerContainer_premium\"],\n[data-test-selector=\"modal-document-viewer-preview-message\"],\n[data-test-selector=\"preview-banner-upgrade-first-cta\"],\n[data-test-selector=\"preview-banner-upload-second-cta\"] {\n    display: none !important;\n    visibility: hidden !important;\n    opacity: 0 !important;\n    height: 0 !important;\n    width: 0 !important;\n    overflow: hidden !important;\n    pointer-events: none !important;\n}\n\n/* Style native desktop/mobile Download buttons directly. React may replace the\n   nodes while scrolling, so this must not depend on a class injected by JS. */\n[data-test-selector=\"document-viewer-download-button-topbar\"],\n[data-dd-studocu-download=\"true\"] {\n    display: inline-flex !important;\n    visibility: visible !important;\n    background: #4D8BF5 !important;\n    border-color: #4D8BF5 !important;\n    color: #fff !important;\n    cursor: pointer !important;\n}\n\n[data-test-selector=\"document-viewer-download-button-topbar\"]:hover,\n[data-dd-studocu-download=\"true\"]:hover {\n    background: #3a7be0 !important;\n    border-color: #3a7be0 !important;\n}\n\n/* Legacy selectors for older versions */\n._95f5f1767857,\n._3273140306b6 {\n    display: none !important;\n}\n\n/* Banner wrapper */\n.banner-wrapper {\n    display: none !important;\n}\n\n/* ========== Hide premium badge/tag/label elements ========== */\n[class*=\"PremiumBadge\"],\n[class*=\"premium-badge\"],\n[class*=\"PremiumLabel\"],\n[class*=\"PremiumTag\"],\n[class*=\"premium_tag\"],\n[class*=\"premium_badge\"],\n[class*=\"premiumBadge\"],\n[class*=\"premiumLabel\"],\n[class*=\"premiumTag\"],\n[class*=\"premium-label\"],\n[class*=\"premium-tag\"],\n[class*=\"PremiumIcon\"],\n[class*=\"premiumIcon\"],\n[class*=\"premium-icon\"],\n[data-test-selector*=\"premium-badge\"],\n[data-test-selector*=\"premium-tag\"],\n[data-test-selector*=\"premium-label\"] {\n    display: none !important;\n    visibility: hidden !important;\n    opacity: 0 !important;\n    height: 0 !important;\n    width: 0 !important;\n    overflow: hidden !important;\n    margin: 0 !important;\n    padding: 0 !important;\n    pointer-events: none !important;\n}\n\n/* ========== Modal overlay hiding ========== */\n#modal-overlay {\n    display: none !important;\n}\n\n/* ========== Hide ads (Refinery89 / Google Publisher Tag / Adagio) ========== */\n[class*=\"AdsContainer\"],\nr89-standalone,\n[id^=\"r89-\"],\n[id*=\"r89-\"],\niframe[id^=\"google_ads_iframe\"],\ndiv[id^=\"google_ads_iframe\"],\n[id^=\"div-gpt-ad\"],\n[id*=\"gpt-ad\"],\n[id*=\"adagio\"],\n[class*=\"adagio\"],\n[class*=\"Advertisement\"],\n[class*=\"advertisement\"] {\n    display: none !important;\n    visibility: hidden !important;\n    height: 0 !important;\n    width: 0 !important;\n    overflow: hidden !important;\n    pointer-events: none !important;\n}\n\n/* ========== Hide the AI \"Ask a question about this document\" toolbar ========== */\n/* (includes the Mock exam / Summary / Quiz pills, which live in the same wrapper) */\n[class*=\"AIToolbar\"] {\n    display: none !important;\n    visibility: hidden !important;\n    pointer-events: none !important;\n}\n\n/* ========== Premium-locked page notice (issue #58) ========== */\n/* Studocu splits each pdf2htmlEX page into a figure layer (bg{hex}.png) and a\n   separately signed text layer ({objectKey}{hex}.page). For premium pages it\n   signs no text layer, so their words are never sent to the browser. Those pages\n   keep Studocu's blurred preview and carry this label, rather than being replaced\n   by the figure layer, which would render as a clean but completely empty sheet. */\n.sh-gated-note {\n    /* Top of the page, not the bottom: the reader scrolls down into the page and\n       should learn why it is blurred before scrolling past it. It covers content,\n       but the covered content is unreadable anyway. */\n    position: absolute !important;\n    left: 0 !important;\n    right: 0 !important;\n    top: 0 !important;\n    z-index: 30 !important;\n    box-sizing: border-box !important;\n    margin: 0 !important;\n    padding: 10px 16px !important;\n    background: rgba(26, 26, 46, 0.92) !important;\n    color: #fff !important;\n    font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif !important;\n    font-size: 13px !important;\n    line-height: 1.45 !important;\n    text-align: center !important;\n    border-bottom: 2px solid #4D8BF5 !important;\n    filter: none !important;\n    opacity: 1 !important;\n    pointer-events: none !important;\n}\n\n/* Keep the label legible on paper without flooding the page with ink. */\n@media print {\n    .sh-gated-note {\n        background: #fff !important;\n        color: #000 !important;\n        border-bottom: 1px solid #000 !important;\n        border-top: 0 !important;\n        font-size: 11px !important;\n        padding: 6px 12px !important;\n    }\n}\n\n#sh-dl-overlay .sh-dl-meta {\n    flex-shrink: 0;\n    font-size: 12px;\n    opacity: .75;\n}\n#sh-dl-overlay .sh-dl-hint {\n    align-self: center;\n    font-size: 12px;\n    opacity: .75;\n}\n";
-  const SCRIBD_CSS = "[data-e2e=\"megamenu-top-bar-read-free-button\"] {\n  display: none !important;\n  visibility: hidden !important;\n  width: 0 !important;\n  min-width: 0 !important;\n  height: 0 !important;\n  margin: 0 !important;\n  padding: 0 !important;\n  overflow: hidden !important;\n  pointer-events: none !important;\n}\n\n[data-e2e^=\"doc-actions-download-button\"],\n[data-e2e^=\"doc-actions-print-button\"] {\n  display: none !important;\n}\n";
+  const SCRIBD_CSS = "[data-e2e=\"megamenu-top-bar-read-free-button\"] {\n  display: none !important;\n  visibility: hidden !important;\n  width: 0 !important;\n  min-width: 0 !important;\n  height: 0 !important;\n  margin: 0 !important;\n  padding: 0 !important;\n  overflow: hidden !important;\n  pointer-events: none !important;\n}\n\n[data-e2e^=\"doc-actions-download-button\"],\n[data-e2e^=\"doc-actions-print-button\"] {\n  display: none !important;\n}\n\n@media screen and (max-width: 700px) {\n  #scribd-fast-download-overlay {\n    padding: 6px !important;\n    max-width: 100vw !important;\n    overflow-x: hidden !important;\n  }\n  #scribd-fast-download-overlay > div:first-child {\n    display: flex !important;\n    flex-wrap: wrap !important;\n    gap: 6px !important;\n    padding: 8px !important;\n    min-width: 0 !important;\n  }\n  #scribd-fast-download-overlay > div:first-child > strong {\n    flex: 1 1 100% !important;\n  }\n  #scribd-fast-download-overlay [data-status] {\n    min-width: 0 !important;\n    flex: 1 1 100% !important;\n  }\n  #scribd-fast-download-overlay > div:first-child > div {\n    min-width: 0 !important;\n    flex: 1 1 100% !important;\n  }\n  #scribd-fast-download-overlay [data-bar] {\n    min-width: 0 !important;\n  }\n  #scribd-fast-download-overlay [data-print],\n  #scribd-fast-download-overlay [data-close] {\n    min-width: 0 !important;\n    flex: 1 1 120px !important;\n  }\n  #scribd-fast-download-overlay [data-reader] {\n    min-height: 0 !important;\n  }\n}\n";
   const SLIDESHARE_CSS = "button[data-cy=\"subscribe-button\"],\nbutton[data-testid=\"subscribe-button\"] {\n  display: none !important;\n  visibility: hidden !important;\n  width: 0 !important;\n  min-width: 0 !important;\n  height: 0 !important;\n  margin: 0 !important;\n  padding: 0 !important;\n  overflow: hidden !important;\n  pointer-events: none !important;\n}\n";
 
   function runStudocu() {
@@ -1444,19 +1459,10 @@
         var rules = [];
         var names = {};
         pages.forEach(function(pf) {
-            // getBoundingClientRect() includes the viewer's mobile transform;
-            // offsetWidth/Height describe the document's actual CSS page size.
             var rect = pf.getBoundingClientRect();
-            var width = Math.round(pf.offsetWidth || rect.width);
-            var height = Math.round(pf.offsetHeight || rect.height);
+            var width = Math.round(rect.width);
+            var height = Math.round(rect.height);
             if (!(width > 0 && height > 0)) return;
-            if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
-                // Android print commonly uses A4 regardless of named @page.
-                // Scale the page's native width to the available sheet without
-                // stretching it or turning a full page into a tiny center tile.
-                var scale = Math.min(793.7 / width, 1122.5 / height);
-                pf.style.setProperty('--dd-print-zoom', String(scale));
-            }
             var key = width + 'x' + height;
             if (!names[key]) {
                 names[key] = 'dd-page-' + (rules.length + 1);
@@ -1470,10 +1476,7 @@
             style.id = 'sh-dl-page-size';
             document.head.appendChild(style);
         }
-        style.textContent = rules.join('') + (/Android|iPhone|iPad/i.test(navigator.userAgent) ?
-            '@media print{@page{size:A4 portrait;margin:0;}' +
-            '#sh-dl-overlay .sh-dl-pages .pf{page:auto !important;' +
-            'zoom:var(--dd-print-zoom,1) !important;}}' : '');
+        style.textContent = rules.join('');
         return style.textContent;
     }
 
@@ -1505,6 +1508,17 @@
             '#sh-dl-overlay .sh-dl-pages .page-content,#sh-dl-overlay .sh-dl-pages .pc{' +
             'display:block !important;visibility:visible !important;filter:none !important;opacity:1 !important;}' +
             '#sh-dl-overlay .sh-dl-pages .pf img{filter:none !important;opacity:1 !important;visibility:visible !important;}' +
+            '@media screen and (max-width:700px){' +
+            '#sh-dl-overlay{width:100vw;max-width:100vw;overflow-x:hidden;box-sizing:border-box;}' +
+            '#sh-dl-overlay .sh-dl-bar{box-sizing:border-box;width:100%;padding:8px;gap:6px;flex-wrap:wrap;}' +
+            '#sh-dl-overlay .sh-dl-bar .t{min-width:0;flex:1 1 50%;}' +
+            '#sh-dl-overlay .sh-dl-bar .actions{width:100%;min-width:0;display:flex;gap:6px;flex-wrap:wrap;}' +
+            '#sh-dl-overlay .sh-dl-bar .sh-dl-hint{width:100%;text-align:center;}' +
+            '#sh-dl-overlay .sh-dl-bar button{min-width:0;flex:1 1 120px;padding:8px;}' +
+            '#sh-dl-overlay .sh-dl-loading .bar{max-width:calc(100vw - 32px);}' +
+            '#sh-dl-overlay .sh-dl-pages{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}' +
+            '#sh-dl-overlay .sh-dl-pages .p2hv{width:max-content;max-width:none;margin:0 auto;}' +
+            '}' +
             '@media print{' +
             'body > *:not(#sh-dl-overlay){display:none !important;}' +
             'html,body{background:#fff !important;height:auto !important;overflow:visible !important;}' +
@@ -2014,14 +2028,15 @@
     ).forEach(button => (button.closest('li') || button).remove());
   }
 
+  function isMobileDownload(button) {
+    return button.matches('[data-e2e="mobile-toolbar-download-button"]') ||
+      (button.matches('button[class*="button__with-danger__root"]') &&
+       !!button.querySelector('[class*="iconLeft"] svg path[d*="7.586"]'));
+  }
+
   function makeDownloadButtonSingleAction() {
     hideTrialCta();
     removeSecondaryActions();
-
-    const isMobileDownload = button =>
-      button.matches('[data-e2e="mobile-toolbar-download-button"]') ||
-      (button.matches('button[class*="button__with-danger__root"]') &&
-       /^(?:download|tải xuống|tải về)$/i.test(button.textContent.trim()));
     const nativeButtons = [...document.querySelectorAll(
       'button[data-e2e*="download"],button[class*="button__with-danger__root"]'
     )].filter(button =>
@@ -2060,8 +2075,7 @@
     if (!button ||
         button.closest('[data-e2e="doc-actions-container"]') ||
         (!button.matches('[data-document-downloader-action="true"],[data-e2e*="multi-format"]') &&
-         !button.matches('[data-e2e="mobile-toolbar-download-button"]') &&
-         !(button.matches('button[class*="button__with-danger__root"]') && /^(?:download|tải xuống|tải về)$/i.test(button.textContent.trim())) &&
+         !isMobileDownload(button) &&
          !button.closest('[class*="DropdownMenu-module_wrapper"]'))) return;
     event.preventDefault();
     event.stopPropagation();
@@ -2147,8 +2161,7 @@
       #${ID.overlay} .detail{white-space:nowrap;color:#667085;font-size:12px}#${ID.overlay} .save,#${ID.overlay} .cancel{padding:7px 12px;border-radius:7px;cursor:pointer;font-weight:600}
       #${ID.overlay} .save{border:0;background:#0a66c2;color:#fff}#${ID.overlay} .cancel{border:1px solid #cbd5e1;background:#fff}
       #${ID.overlay} iframe{flex:1;width:100%;min-height:0;border:0;background:#fff}
-      #${ID.button}.ss-floating-download{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:2147483646;min-width:0;padding:12px 16px;border:0;border-radius:50px;background:#0a66c2;color:#fff;font:600 14px system-ui;cursor:pointer;box-shadow:0 4px 18px #0005}
-      @media(max-width:767px){#${ID.overlay}{padding:6px}#${ID.overlay} .toolbar{gap:6px;padding:8px;flex-wrap:wrap}#${ID.overlay} .status{min-width:0;flex:1}#${ID.overlay} .title,#${ID.overlay} .detail{display:none}#${ID.button}:not(.ss-floating-download){width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button}:not(.ss-floating-download) .ss-download-label{display:none}}
+      @media(max-width:767px){#${ID.overlay}{padding:6px}#${ID.overlay} .toolbar{gap:6px;padding:8px;flex-wrap:wrap}#${ID.overlay} .status{min-width:0;flex:1}#${ID.overlay} .title,#${ID.overlay} .detail{display:none}#${ID.button}{width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button} .ss-download-label{display:none}}
     `;
     document.head.appendChild(style);
     removeTrialCta();
@@ -2521,8 +2534,11 @@
 
   function toolbarTarget() {
     const wrapper = document.querySelector('[class*="metadata-toolbar"][class*="wrapper"]');
-    if (!wrapper) return null;
-    return [...wrapper.children].find(el => el instanceof HTMLElement && /metadata-toolbar.*__actions/.test(el.className)) || wrapper;
+    if (wrapper) return [...wrapper.children].find(el => el instanceof HTMLElement && /metadata-toolbar.*(?:__|_)actions/.test(el.className)) || wrapper;
+    const actions = document.querySelector('[class*="metadata-toolbar"][class*="actions"]');
+    if (actions) return actions;
+    const share = document.querySelector('button[data-testid="share-button"],button[data-cy="share-button"]');
+    return share?.closest('[class*="actions"]') || share?.parentElement || null;
   }
 
   function mount() {
@@ -2538,21 +2554,18 @@
       return;
     }
 
-    const target = nativeWrapper?.parentElement || toolbarTarget() || document.body;
+    const target = nativeWrapper?.parentElement || toolbarTarget();
+    if (!target) return;
     const wrapper = document.createElement('div');
-    wrapper.className = nativeWrapper?.className || 'download-button download-button-guest DownloadButton-module__Lil-cW__root';
+    wrapper.className = nativeWrapper?.className || 'download-button download-button-guest Lil-cW_root DownloadButton-module__Lil-cW__root';
     wrapper.dataset.scriptDownload = 'true';
 
     const button = document.createElement('button');
     button.id = ID.button;
     button.type = 'button';
     button.setAttribute('aria-label', template?.getAttribute('aria-label') || 'Download');
-    button.className = template?.className || 'button Button-module__4HgN-q__root Button-module__4HgN-q__accent Button-module__4HgN-q__filled Button-module__4HgN-q__large';
+    button.className = template?.className || 'button _4HgN-q_root _4HgN-q_accent _4HgN-q_filled _4HgN-q_large Button-module__4HgN-q__root Button-module__4HgN-q__accent Button-module__4HgN-q__filled Button-module__4HgN-q__large';
     button.innerHTML = template?.innerHTML || `<span><span class="Button-module__4HgN-q__iconSlot"><span class="Button-module__4HgN-q__iconEl"><span role="img" aria-label="download icon" class="icon Icon-module__J9mFQG__icon Icon-module__J9mFQG__mask" style="--icon:url(/images/next/svg/download.svg)"></span></span><span class="Button-module__4HgN-q__spinnerEl"><svg class="spinner" viewBox="0 0 50 50" width="24" height="24" fill="currentColor"><path d="M43.935 25.145c0-10.318-8.364-18.683-18.683-18.683-10.318 0-18.683 8.365-18.683 18.683h4.068c0-8.071 6.543-14.615 14.615-14.615s14.615 6.543 14.615 14.615h4.068Z"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur=".6s" repeatCount="indefinite"/></path></svg></span></span></span>`;
-    if (target === document.body) {
-      button.className = 'ss-floating-download';
-      button.textContent = 'Tải PDF';
-    }
     const label = button.querySelector('.ellipsis, [class*="ellipsis"]');
     if (label) label.classList.add('ss-download-label');
     button.onclick = downloadPdf; wrapper.appendChild(button);

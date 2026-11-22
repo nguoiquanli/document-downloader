@@ -10,7 +10,7 @@ OUT = ROOT / "document-downloader.user.js"
 HEADER = """// ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.2
+// @version      2.1.3
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*
@@ -62,10 +62,25 @@ HEADER = """// ==UserScript==
         return;
       }
       for (const cookie of cookies) {
-        const domain = cookie.domain?.replace(/^\\./, '') || host;
-        const path = cookie.path || '/';
-        const url = `${cookie.secure ? 'https' : 'http'}://${domain}${path}`;
-        await GM_cookie.delete({ url, name: cookie.name, domain: cookie.domain, path });
+        // CDP matches an exact domain/path OR a URL. Passing both can leave
+        // cookies untouched when the current URL and the cookie domain differ.
+        const details = { name: cookie.name, domain: cookie.domain, path: cookie.path || '/' };
+        if (cookie.partitionKey) details.partitionKey = cookie.partitionKey;
+        try { await GM_cookie.delete(details); }
+        catch (error) { console.warn('Document Downloader: cookie domain/path deletion failed', error); }
+      }
+      const remaining = await GM_cookie.list({ url: location.href });
+      if (remaining.length) {
+        for (const cookie of remaining) {
+          const details = { name: cookie.name, url: location.href };
+          if (cookie.partitionKey) details.partitionKey = cookie.partitionKey;
+          try { await GM_cookie.delete(details); }
+          catch (error) { console.warn('Document Downloader: cookie URL deletion failed', error); }
+        }
+      }
+      const stillPresent = await GM_cookie.list({ url: location.href });
+      if (stillPresent.length) {
+        throw new Error(`Còn ${stillPresent.length} cookie; hãy xóa bằng cài đặt trình duyệt.`);
       }
       location.reload();
     } catch (error) {

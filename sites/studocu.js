@@ -1259,19 +1259,10 @@
         var rules = [];
         var names = {};
         pages.forEach(function(pf) {
-            // getBoundingClientRect() includes the viewer's mobile transform;
-            // offsetWidth/Height describe the document's actual CSS page size.
             var rect = pf.getBoundingClientRect();
-            var width = Math.round(pf.offsetWidth || rect.width);
-            var height = Math.round(pf.offsetHeight || rect.height);
+            var width = Math.round(rect.width);
+            var height = Math.round(rect.height);
             if (!(width > 0 && height > 0)) return;
-            if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
-                // Android print commonly uses A4 regardless of named @page.
-                // Scale the page's native width to the available sheet without
-                // stretching it or turning a full page into a tiny center tile.
-                var scale = Math.min(793.7 / width, 1122.5 / height);
-                pf.style.setProperty('--dd-print-zoom', String(scale));
-            }
             var key = width + 'x' + height;
             if (!names[key]) {
                 names[key] = 'dd-page-' + (rules.length + 1);
@@ -1285,10 +1276,7 @@
             style.id = 'sh-dl-page-size';
             document.head.appendChild(style);
         }
-        style.textContent = rules.join('') + (/Android|iPhone|iPad/i.test(navigator.userAgent) ?
-            '@media print{@page{size:A4 portrait;margin:0;}' +
-            '#sh-dl-overlay .sh-dl-pages .pf{page:auto !important;' +
-            'zoom:var(--dd-print-zoom,1) !important;}}' : '');
+        style.textContent = rules.join('');
         return style.textContent;
     }
 
@@ -1320,6 +1308,17 @@
             '#sh-dl-overlay .sh-dl-pages .page-content,#sh-dl-overlay .sh-dl-pages .pc{' +
             'display:block !important;visibility:visible !important;filter:none !important;opacity:1 !important;}' +
             '#sh-dl-overlay .sh-dl-pages .pf img{filter:none !important;opacity:1 !important;visibility:visible !important;}' +
+            '@media screen and (max-width:700px){' +
+            '#sh-dl-overlay{width:100vw;max-width:100vw;overflow-x:hidden;box-sizing:border-box;}' +
+            '#sh-dl-overlay .sh-dl-bar{box-sizing:border-box;width:100%;padding:8px;gap:6px;flex-wrap:wrap;}' +
+            '#sh-dl-overlay .sh-dl-bar .t{min-width:0;flex:1 1 50%;}' +
+            '#sh-dl-overlay .sh-dl-bar .actions{width:100%;min-width:0;display:flex;gap:6px;flex-wrap:wrap;}' +
+            '#sh-dl-overlay .sh-dl-bar .sh-dl-hint{width:100%;text-align:center;}' +
+            '#sh-dl-overlay .sh-dl-bar button{min-width:0;flex:1 1 120px;padding:8px;}' +
+            '#sh-dl-overlay .sh-dl-loading .bar{max-width:calc(100vw - 32px);}' +
+            '#sh-dl-overlay .sh-dl-pages{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}' +
+            '#sh-dl-overlay .sh-dl-pages .p2hv{width:max-content;max-width:none;margin:0 auto;}' +
+            '}' +
             '@media print{' +
             'body > *:not(#sh-dl-overlay){display:none !important;}' +
             'html,body{background:#fff !important;height:auto !important;overflow:visible !important;}' +
