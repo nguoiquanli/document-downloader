@@ -40,6 +40,18 @@ Tên, nhãn hiệu và dịch vụ Studocu, Scribd, SlideShare thuộc về các
 
 Khi cập nhật, giải nén bản mới đè lên thư mục cũ rồi nhấn **Reload** trong trang quản lý extension.
 
+### Userscript cho ChromeXt trên Android
+
+1. Mở [đường dẫn cài userscript](https://raw.githubusercontent.com/nguoiquanli/document-downloader/main/document-downloader.user.js) bằng trình duyệt đã bật ChromeXt và cài script. [Xem mã nguồn](document-downloader.user.js).
+2. Cho phép các quyền `GM_cookie`, `GM_xmlhttpRequest` và truy cập các miền Studocu, Scribd, SlideShare được hỏi khi cài.
+3. Truy cập tài liệu rồi dùng nút **Download** trên trang như khi dùng extension.
+
+Script chứa logic và CSS của cả ba website trong một file; không cần cài extension cùng lúc. ChromeXt cần `@grant frames` để đọc bản Embed SlideShare trong iframe. Ảnh SlideShare và tài nguyên Studocu được tải bằng `GM_xmlhttpRequest` ngay trong trình duyệt, không qua máy chủ trung gian.
+
+Trên Studocu, script thử xóa cookie áp dụng cho URL tài liệu qua `GM_cookie`, sau đó tự tải lại một lần. Dấu trong `sessionStorage` ngăn lặp tải lại. ChromeXt phải cấp quyền và thực hiện được `GM_cookie`; nếu không, script tiếp tục chạy và bạn có thể xóa cookie thủ công. API này liệt kê cookie của URL đang xem, không quét toàn bộ cookie ở mọi miền và đường dẫn như quyền `cookies` của extension.
+
+Scribd và Studocu dùng hộp thoại **In / Lưu thành PDF** của trình duyệt Android. Nếu trình duyệt không cung cấp tùy chọn lưu PDF hoặc không cho in iframe, tính năng này phụ thuộc khả năng của trình duyệt. SlideShare dựng PDF rồi lưu bằng nút trong giao diện của script.
+
 ## Cách sử dụng
 
 ### Scribd
@@ -105,6 +117,8 @@ node --check background.js
 node --check sites/scribd.js
 node --check sites/slideshare.js
 node --check sites/studocu.js
+python build_userscript.py
+node --check document-downloader.user.js
 ```
 
 Sau đó kiểm tra `manifest.json`, nhấn **Reload** tại `chrome://extensions` và thử từng module trên website tương ứng.

@@ -10,6 +10,8 @@ on:
       - styles/**
       - README.md
       - CHANGELOG.md
+      - document-downloader.user.js
+      - build_userscript.py
       - .github/workflows/release.yml
   workflow_dispatch:
 
@@ -25,6 +27,11 @@ jobs:
       - name: Read version
         id: version
         run: echo "version=$(jq -r .version manifest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Build ChromeXt userscript
+        run: |
+          python3 build_userscript.py
+          node --check document-downloader.user.js
 
       - name: Build extension ZIP
         env:

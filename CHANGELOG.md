@@ -7,6 +7,7 @@
 - Gỡ khóa cuộn trên `html` và `body` do hộp thoại này tạo ra, gồm cả trường hợp Android.
 - Chỉ tác động tới `AuthWall` không có lớp `hideable`; các hộp đăng nhập do người dùng chủ động mở vẫn hoạt động.
 - Không tích hợp website và GitHub Pages mới của StudocuHack vì không thuộc chức năng extension.
+- Bổ sung [userscript ChromeXt (mở nội dung)](https://github.com/nguoiquanli/document-downloader/blob/main/document-downloader.user.js) cho Studocu, Scribd và SlideShare; Studocu tự xóa cookie áp dụng cho URL đang xem rồi nạp lại một lần khi ChromeXt hỗ trợ `GM_cookie`.
 
 ## 2.1.0 — 2026-09-22
 
