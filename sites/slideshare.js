@@ -66,7 +66,7 @@
       #${ID.overlay} .detail{white-space:nowrap;color:#667085;font-size:12px}#${ID.overlay} .save,#${ID.overlay} .cancel{padding:7px 12px;border-radius:7px;cursor:pointer;font-weight:600}
       #${ID.overlay} .save{border:0;background:#0a66c2;color:#fff}#${ID.overlay} .cancel{border:1px solid #cbd5e1;background:#fff}
       #${ID.overlay} iframe{flex:1;width:100%;min-height:0;border:0;background:#fff}
-      @media(max-width:767px){#${ID.button}{width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button} .ss-download-label{display:none}}
+      @media screen and (max-width:767px){#${ID.overlay}{box-sizing:border-box;max-width:100vw;padding:6px;overflow:hidden}#${ID.overlay} .toolbar{box-sizing:border-box;width:100%;min-width:0;padding:8px;gap:6px;flex-wrap:wrap}#${ID.overlay} .track{min-width:40px}#${ID.overlay} .status{min-width:0;flex:1 1 100%;overflow-wrap:anywhere}#${ID.overlay} .title,#${ID.overlay} .detail{display:none}#${ID.overlay} .save,#${ID.overlay} .cancel{min-width:0;max-width:100%;flex:1 1 auto}#${ID.overlay} iframe{min-width:0;max-width:100%}#${ID.button}{width:48px;min-width:48px;padding-left:0;padding-right:0}#${ID.button} .ss-download-label{display:none}}
     `;
     document.head.appendChild(style);
     removeTrialCta();
@@ -439,10 +439,17 @@
 
   function toolbarTarget() {
     const toolbar = document.querySelector('[data-cy="slideshow-toolbar"]');
+    // Download belongs to the second actions group, next to Save to Drive.
+    // The first `.actions` group contains Like, Share and Embed instead.
+    const wrapper = toolbar?.querySelector('[class*="_wrapper"]');
+    const downloadActions = wrapper?.querySelector(':scope > [class$="_actions"]');
+    if (downloadActions) return downloadActions;
+    const drive = toolbar?.querySelector('button[data-cy="save-to-drive-button"]');
+    if (drive?.parentElement) return drive.parentElement;
     const groups = [...(toolbar?.querySelectorAll('.actions') || [])];
     if (groups.length) return groups.find(group => group.getClientRects().length) || groups[0];
-    const wrapper = document.querySelector('[class*="metadata-toolbar"]');
-    if (wrapper) return wrapper.querySelector('.actions') || wrapper;
+    const fallback = document.querySelector('[class*="metadata-toolbar"]');
+    if (fallback) return fallback.querySelector('[class$="_actions"]') || fallback;
     return document.querySelector('button[data-cy="embed-button"]')?.closest('.actions') || null;
   }
 
@@ -465,7 +472,7 @@
 
     const target = nativeWrapper?.parentElement || toolbarTarget();
     if (!target) return;
-    const neighboringButton = target.querySelector('button[data-cy="embed-button"],button[data-cy="share-button"]');
+    const neighboringButton = target.querySelector('button[data-cy="save-to-drive-button"],button[data-cy="embed-button"],button[data-cy="share-button"]');
     const desktopToolbar = !nativeWrapper && !!neighboringButton;
     const wrapper = desktopToolbar ? null : document.createElement('div');
     if (wrapper) {

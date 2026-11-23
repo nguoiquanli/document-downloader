@@ -1,19 +1,4 @@
 /* ChromeXt's narrow viewport overlays; extension styles stay unchanged. */
-[data-dd-cookie-clear] {
-  position: fixed !important;
-  z-index: 2147480000;
-  border: 1px solid #1969b2;
-  border-radius: 6px;
-  background: #fff;
-  color: #1969b2;
-  padding: 7px 10px;
-  margin: 0;
-  cursor: pointer;
-  max-width: 100%;
-  white-space: nowrap;
-  touch-action: manipulation;
-}
-[data-dd-cookie-clear][hidden] { display: none !important; }
 #ss-download-pdf.ss-floating-download {
   position: fixed !important;
   right: 16px;

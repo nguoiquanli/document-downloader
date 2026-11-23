@@ -22,8 +22,6 @@
     });
   }
 
-  hideTrialCta();
-
   function documentId() {
     return location.pathname.match(/(?:^|\/)(?:document|doc)\/(\d+)(?:\/|$)/)?.[1] || null;
   }
@@ -243,15 +241,15 @@
 
   function isMobileDownload(button) {
     return button.matches('[data-e2e="mobile-toolbar-download-button"]') ||
-      (button.matches('button[class*="button__with-danger__root"]') &&
-       !!button.querySelector('[class*="iconLeft"] svg path[d*="7.586"]'));
+      (button.matches('button[class*="splitdropdownbutton__root"],button[class*="button__with-danger__root"]') &&
+       !!button.querySelector('svg path[d*="7.586"]'));
   }
 
   function makeDownloadButtonSingleAction() {
     hideTrialCta();
     removeSecondaryActions();
     const nativeButtons = [...document.querySelectorAll(
-      'button[data-e2e*="download"],button[class*="button__with-danger__root"]'
+      'button[data-e2e*="download"],button[class*="splitdropdownbutton__root"],button[class*="button__with-danger__root"]'
     )].filter(button =>
       button.dataset.documentDownloaderAction !== 'true' &&
       !button.closest('[data-e2e="doc-actions-container"]') &&
@@ -280,26 +278,33 @@
     }
   }
 
-  document.addEventListener('click', event => {
-    const button = event.target.closest?.(
-      'button[data-document-downloader-action="true"],' +
-      'button[data-e2e*="download"],button[class*="button__with-danger__root"]'
-    );
-    if (!button ||
-        button.closest('[data-e2e="doc-actions-container"]') ||
-        (!button.matches('[data-document-downloader-action="true"],[data-e2e*="multi-format"]') &&
-         !isMobileDownload(button) &&
-         !button.closest('[class*="DropdownMenu-module_wrapper"]'))) return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    openDownloader();
-  }, true);
+  function boot() {
+    hideTrialCta();
+    document.addEventListener('click', event => {
+      const button = event.target.closest?.(
+        'button[data-document-downloader-action="true"],' +
+        'button[data-e2e*="download"],button[class*="splitdropdownbutton__root"],button[class*="button__with-danger__root"]'
+      );
+      if (!button ||
+          button.closest('[data-e2e="doc-actions-container"]') ||
+          (!button.matches('[data-document-downloader-action="true"],[data-e2e*="multi-format"]') &&
+           !isMobileDownload(button) &&
+           !button.closest('[class*="DropdownMenu-module_wrapper"]'))) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      openDownloader();
+    }, true);
 
-  makeDownloadButtonSingleAction();
-  let buttonTimer;
-  new MutationObserver(() => {
-    clearTimeout(buttonTimer);
-    buttonTimer = setTimeout(makeDownloadButtonSingleAction, 100);
-  }).observe(document.documentElement, { childList: true, subtree: true });
+    makeDownloadButtonSingleAction();
+    let scheduled = false;
+    new MutationObserver(() => {
+      if (scheduled) return;
+      scheduled = true;
+      setTimeout(() => { scheduled = false; makeDownloadButtonSingleAction(); }, 100);
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  if (document.documentElement) boot();
+  else document.addEventListener('readystatechange', boot, { once: true });
 })();

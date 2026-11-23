@@ -1447,6 +1447,10 @@
     function isNativeDownloadButton(button) {
         if (!button || button.closest('#sh-dl-overlay')) return false;
         if (button.matches('[data-test-selector="document-viewer-download-button-topbar"]')) return true;
+        // The compact mobile button has only a cloud-arrow-down SVG; its
+        // accessible label may be localized, so identify the icon instead.
+        if (button.closest('.hidden-from-tablet') &&
+            button.querySelector('svg[data-icon="cloud-arrow-down"]')) return true;
         return NATIVE_DOWNLOAD_WORDS.test((button.textContent || '').trim());
     }
 

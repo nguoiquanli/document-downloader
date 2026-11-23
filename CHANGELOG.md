@@ -1,5 +1,11 @@
 # Changelog
 
+## Userscript 2.1.10 — 2026-11-23
+
+- Gỡ hoàn toàn nút, menu, quyền và mã xóa cookie khỏi userscript; việc xóa cookie Studocu thực hiện thủ công trong trình duyệt.
+- Nhận diện nút tải Studocu dạng biểu tượng cloud-arrow-down, kể cả khi không có nhãn hiển thị; áp dụng cho extension và userscript.
+- Sửa vị trí thêm nút SlideShare trong extension sang nhóm hành động cạnh Save to Drive; cải thiện nhận diện nút Scribd điện thoại và bố cục lớp phủ Studocu/SlideShare trên màn hình hẹp.
+
 ## Userscript 2.1.9 — 2026-11-23
 
 - Nếu `GM_cookie.list` của ChromeXt không phản hồi, xóa cookie thường bằng `document.cookie`, báo số lượng đã xóa và hướng dẫn xóa dữ liệu trang để xử lý cookie HttpOnly.

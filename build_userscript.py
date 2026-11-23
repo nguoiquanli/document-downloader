@@ -10,7 +10,7 @@ OUT = ROOT / "document-downloader.user.js"
 HEADER = """// ==UserScript==
 // @name         Document Downloader (ChromeXt)
 // @namespace    https://github.com/nguoiquanli/document-downloader
-// @version      2.1.9
+// @version      2.1.10
 // @description  Save accessible Studocu, Scribd and SlideShare documents as PDF.
 // @match        https://*.studocu.com/*
 // @match        https://*.studeersnel.nl/*
@@ -19,10 +19,8 @@ HEADER = """// ==UserScript==
 // @match        https://*.scribd.com/*
 // @match        https://*.slideshare.net/*
 // @run-at       document-start
-// @grant        GM_cookie
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
-// @grant        GM_registerMenuCommand
 // @grant        frames
 // @connect      doc-assets.studocu.com
 // @connect      image.slidesharecdn.com
@@ -48,149 +46,6 @@ HEADER = """// ==UserScript==
     const style = document.createElement('style');
     style.textContent = css;
     (document.head || document.documentElement).appendChild(style);
-  }
-
-  // Only run on explicit request. Automatically deleting cookies on every URL
-  // update made ChromeXt reload repeatedly (and could invalidate signed URLs
-  // while the document was being assembled for printing).
-  function cookieOperation(promise, action, timeout = 4000) {
-    let timer;
-    return Promise.race([
-      promise,
-      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${action} quá thời gian chờ`)), timeout); })
-    ]).finally(() => clearTimeout(timer));
-  }
-
-  function clearVisibleStudocuCookies() {
-    const before = document.cookie.split(';').map(part => part.trim().split('=')[0]).filter(Boolean);
-    if (!before.length) return { before: 0, remaining: 0 };
-    const paths = new Set(['/']);
-    let path = '';
-    for (const segment of location.pathname.split('/').filter(Boolean)) {
-      path += '/' + segment;
-      paths.add(path);
-      paths.add(path + '/');
-    }
-    const hostParts = location.hostname.split('.');
-    const domains = [''];
-    for (let i = 0; i <= hostParts.length - 2; i++)
-      domains.push(hostParts.slice(i).join('.'));
-    for (const name of new Set(before)) for (const cookiePath of paths) for (const domain of domains) {
-      const removal = `${name}=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=${cookiePath}${domain ? '; Domain=' + domain : ''}`;
-      document.cookie = removal;
-      document.cookie = removal + '; Secure';
-      document.cookie = removal + '; Secure; SameSite=None; Partitioned';
-    }
-    return { before: before.length, remaining: document.cookie.split(';').filter(part => part.trim()).length };
-  }
-
-  async function clearStudocuCookies(button) {
-    if (button?.disabled) return;
-    if (button) { button.disabled = true; button.textContent = 'Đang xóa…'; }
-    try {
-      const api = typeof GM_cookie !== 'undefined' && typeof GM_cookie.list === 'function'
-        && typeof GM_cookie.delete === 'function';
-      let apiError = null;
-      let apiUnresponsive = false;
-      try { apiUnresponsive = sessionStorage.getItem('dd-cookie-api-unresponsive') === 'true'; }
-      catch (_) { /* Storage can be disabled by the browser. */ }
-      if (api && !apiUnresponsive) {
-        try {
-          const cookies = await cookieOperation(GM_cookie.list({ url: location.href }), 'Liệt kê cookie', 2500);
-          if (!Array.isArray(cookies)) throw new Error('ChromeXt không trả về danh sách cookie');
-          for (const cookie of cookies) {
-            const details = { name: cookie.name, domain: cookie.domain, path: cookie.path || '/' };
-            if (cookie.partitionKey) details.partitionKey = cookie.partitionKey;
-            await cookieOperation(GM_cookie.delete(details), 'Xóa cookie');
-          }
-          const remaining = await cookieOperation(GM_cookie.list({ url: location.href }), 'Kiểm tra cookie', 2500);
-          if (remaining.length) throw new Error(`ChromeXt còn ${remaining.length} cookie`);
-          if (document.cookie.trim()) throw new Error('ChromeXt vẫn để lại cookie JavaScript đọc được');
-          if (!cookies.length && !document.cookie.trim()) {
-            if (button) button.textContent = 'Không có cookie';
-            alert('Không tìm thấy cookie của trang này.');
-            return;
-          }
-          if (button) button.textContent = 'Đã xóa';
-          location.reload();
-          return;
-        } catch (error) {
-          apiError = error;
-          console.warn('Document Downloader: ChromeXt cookie API failed', error);
-          if (/quá thời gian chờ/.test(error.message || ''))
-            try { sessionStorage.setItem('dd-cookie-api-unresponsive', 'true'); } catch (_) { /* optional */ }
-        }
-      }
-      const visible = clearVisibleStudocuCookies();
-      if (button) button.textContent = 'Xóa thủ công';
-      const note = visible.before
-        ? `Đã xóa ${Math.max(0, visible.before - visible.remaining)}/${visible.before} cookie JavaScript có thể đọc. `
-        : 'Không có cookie nào JavaScript có thể đọc. ';
-      alert(note + (visible.remaining ? 'Vẫn còn cookie thường. ' : '') +
-        'ChromeXt không xác nhận được cookie HttpOnly; hãy xóa dữ liệu trang trong cài đặt trình duyệt.' +
-        (apiError ? ` (${apiError.message || apiError})` : ''));
-    } catch (error) {
-      console.warn('Document Downloader: cookie cleanup failed', error);
-      if (button) { button.textContent = 'Xóa thủ công'; button.title = error.message || String(error); }
-      alert('Không xóa được cookie: ' + (error.message || error));
-    } finally {
-      if (button) button.disabled = false;
-    }
-  }
-
-  function installStudocuCookieButton() {
-    const selector = '[data-test-selector="document-viewer-download-button-topbar"], [data-dd-studocu-download="true"], [class*="TopbarActions-module"][class*="secondaryActionsWrapper"] button';
-    const downloadWords = /^(download|downloaden|scarica|descargar|t[eé]l[eé]charger|herunterladen|pobierz|baixar|indir|скачать|ladda ner|last ned|lataa|tải xuống|tải về)$/i;
-    let button;
-    let anchor;
-    const position = () => {
-      if (!button) return;
-      if (!anchor?.isConnected) { button.hidden = true; return; }
-      const rect = anchor.getBoundingClientRect();
-      const visible = rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
-      button.hidden = !visible;
-      if (!visible) return;
-      const width = button.offsetWidth || 102;
-      const left = rect.left >= width + 12 ? rect.left - width - 6 : rect.right + 6;
-      button.style.left = `${Math.max(6, Math.min(innerWidth - width - 6, left))}px`;
-      button.style.top = `${Math.max(6, Math.min(innerHeight - rect.height, rect.top))}px`;
-    };
-    const mount = () => {
-      const candidates = [...document.querySelectorAll(selector)].filter(download =>
-        !download.closest('#sh-dl-overlay') &&
-        (download.matches('[data-test-selector="document-viewer-download-button-topbar"], [data-dd-studocu-download="true"]')
-          || downloadWords.test((download.textContent || '').trim()))
-      );
-      anchor = candidates.find(download => download.getBoundingClientRect().width > 0) || candidates[0];
-      if (!anchor || !document.body) { if (button) button.hidden = true; return; }
-      if (!button) {
-        button = document.createElement('button');
-        button.type = 'button';
-        button.dataset.ddCookieClear = 'true';
-        button.textContent = 'Xóa cookie';
-        button.setAttribute('aria-label', 'Xóa cookie Studocu');
-        for (const type of ['pointerdown', 'mousedown', 'touchstart', 'touchend'])
-          button.addEventListener(type, event => event.stopPropagation());
-        button.addEventListener('click', event => {
-          event.preventDefault(); event.stopImmediatePropagation();
-          clearStudocuCookies(button);
-        });
-        document.body.appendChild(button);
-      }
-      position();
-    };
-    mount();
-    let scheduled = false;
-    new MutationObserver(() => {
-      if (scheduled) return;
-      scheduled = true;
-      setTimeout(() => { scheduled = false; mount(); }, 100);
-    })
-      .observe(document.documentElement, { childList: true, subtree: true,
-        attributes: true, attributeFilter: ['data-dd-studocu-download', 'data-test-selector'] });
-    window.addEventListener('scroll', position, { passive: true, capture: true });
-    window.addEventListener('resize', position, { passive: true });
-    window.visualViewport?.addEventListener('resize', position, { passive: true });
   }
 
   // Fetch-like response used by Studocu's original .text() and .blob() calls.
@@ -292,12 +147,7 @@ HEADER = """// ==UserScript==
     installCss(USERSCRIPT_CSS);
     if (isStudocu) {
       if (window !== window.top) return;
-      if (typeof GM_registerMenuCommand === 'function') {
-        try { GM_registerMenuCommand('Xóa cookie Studocu và tải lại', () => clearStudocuCookies()); }
-        catch (error) { console.warn('Document Downloader: menu command failed', error); }
-      }
       installCss(STUDOCU_CSS);
-      installStudocuCookieButton();
       runStudocu();
     } else if (isScribd) {
       if (window !== window.top) return;
