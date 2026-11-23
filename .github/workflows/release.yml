@@ -48,8 +48,9 @@ jobs:
         run: |
           TAG="v${VERSION}"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release view "$TAG" --json body --jq .body > release-notes.md
-            sed -i '/^Userscript: \[link\]/d' release-notes.md
+            gh release view "$TAG" --json body --jq .body | \
+              sed '/^Userscript: \[link\]/d' | \
+              python3 -c 'import sys; print(sys.stdin.read().rstrip())' > release-notes.md
             printf '\nUserscript: [link](https://raw.githubusercontent.com/nguoiquanli/document-downloader/main/document-downloader.user.js)\n' >> release-notes.md
             gh release upload "$TAG" "document-downloader-v${VERSION}.zip" --clobber
             gh release edit "$TAG" --title "Document Downloader ${TAG}" --notes-file release-notes.md
